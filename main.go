@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/rpc"
 	"io/ioutil"
-	"os"
 	"strings"
 	"text/template"
 	"encoding/json"
@@ -15,21 +14,27 @@ import (
 
 type Configuration struct {
 	ClientPath string `json: "clientPath"`
+	DBName string `json: "dbName"`
+	DBUsername string `json: "dbUsername"`
+	DBPassword string `json: "dbPassword"`
 }
 var config = Configuration{}
 
 var addr *string
 var clientDir *string
+var dbName *string
+var dbUsername *string
+var dbPassword *string
 var homeTempl *template.Template
 
 func init() {
 	file, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		panic(err)
+		log.Fatal("OpenConfigFile: ", err)
 	}
 	err = json.Unmarshal(file, &config)
 	if err != nil {
-		panic(err)
+		log.Fatal("ParseConfigFile: ", err)
 	}
 	addr = flag.String("addr", ":8080", "http service address")
 	clientDir = flag.String("clientDir", config.ClientPath, "client app directory")
@@ -41,9 +46,6 @@ func main() {
 
 	// Initialize websocket hub
 	go h.run()
-
-	// Initialize DataBase
-	initDB()
 
 	// Register rpc methods
 	initRPCRegistration()
@@ -61,10 +63,8 @@ func main() {
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
-
 	if validFileRequest(r.URL.Path) {
-		pwd, _ := os.Getwd()
-		filePath := pwd + *clientDir + r.URL.Path
+		filePath := *clientDir + r.URL.Path
 		http.ServeFile(w, r, filePath)
 		return
 	}

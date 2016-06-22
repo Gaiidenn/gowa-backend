@@ -1,3 +1,6 @@
 {
-    "clientPath": "/home/jerome/go-workspace/src/github.com/Gaiidenn/gowa2-app/client"
+    "clientPath": "/home/gaiidenn/go-workspace/src/github.com/Gaiidenn/gowa2-app/client",
+    "dbName": "test",
+    "dbUsername": "root",
+    "dbPassword": ""
 }

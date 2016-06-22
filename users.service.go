@@ -80,7 +80,7 @@ func (user *User) Save() error {
 		*user = users[0]
 		return nil
 	}
-	return errors.New("prout")
+	return errors.New("End of process...")
 }
 
 // Log the user in app
