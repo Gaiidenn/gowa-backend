@@ -28,21 +28,29 @@ var dbPassword *string
 var homeTempl *template.Template
 
 func init() {
-	file, err := ioutil.ReadFile("config.json")
-	if err != nil {
-		log.Fatal("OpenConfigFile: ", err)
-	}
-	err = json.Unmarshal(file, &config)
-	if err != nil {
-		log.Fatal("ParseConfigFile: ", err)
-	}
+	loadConfig()
 	addr = flag.String("addr", ":8080", "http service address")
 	clientDir = flag.String("clientDir", config.ClientPath, "client app directory")
 	homeTempl = template.Must(template.ParseFiles(config.ClientPath + "/index.html"))
 }
 
+func loadConfig() {
+	if config == (Configuration{}) {
+		file, err := ioutil.ReadFile("config.json")
+		if err != nil {
+			log.Fatal("OpenConfigFile: ", err)
+		}
+		err = json.Unmarshal(file, &config)
+		if err != nil {
+			log.Fatal("ParseConfigFile: ", err)
+		}
+	}
+}
+
 func main() {
 	flag.Parse()
+
+	initDB()
 
 	// Initialize websocket hub
 	go h.run()

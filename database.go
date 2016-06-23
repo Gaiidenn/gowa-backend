@@ -4,6 +4,7 @@ import (
 	"log"
 	ara "github.com/solher/arangolite"
 	"flag"
+	"fmt"
 )
 
 var db *ara.DB
@@ -12,16 +13,18 @@ func init() {
 	dbName = flag.String("dbName", config.DBName, "database name")
 	dbUsername = flag.String("dbUsername", config.DBUsername, "database username")
 	dbPassword = flag.String("dbPassword", config.DBPassword, "database password")
-192.168.1.7:
-	db = ara.New().
-	    LoggerOptions(false, false, false).
-	    Connect("http://localhost:8529", "_system", "root", "")
+}
 
+func initDB() {
+	db = ara.New().
+		LoggerOptions(false, false, false).
+		Connect("http://localhost:8529", "_system", "root", "")
+	fmt.Println(*dbUsername)
 	_, err := db.Run(&ara.CreateDatabase{
-	    Name: *dbName,
-	    Users: []map[string]interface{}{
-	        {"username": *dbUsername, "passwd": *dbPassword},
-	    },
+		Name: *dbName,
+		Users: []map[string]interface{}{
+			{"username": *dbUsername, "passwd": *dbPassword},
+		},
 	})
 	if err != nil {
 		log.Println(err)
@@ -29,7 +32,7 @@ func init() {
 		log.Println("Database successfully created")
 	}
 
-	db.SwitchDatabase("test")
+	db.SwitchDatabase(*dbName)
 	initCollections()
 }
 
