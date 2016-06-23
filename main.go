@@ -10,6 +10,9 @@ import (
 	"text/template"
 	"encoding/json"
 	"golang.org/x/net/websocket"
+	"github.com/Gaiidenn/gowa-backend/database"
+	"github.com/Gaiidenn/gowa-backend/rpcWebsocket"
+	"github.com/Gaiidenn/gowa-backend/users"
 )
 
 type Configuration struct {
@@ -31,6 +34,10 @@ func init() {
 	loadConfig()
 	addr = flag.String("addr", ":8080", "http service address")
 	clientDir = flag.String("clientDir", config.ClientPath, "client app directory")
+	dbName = flag.String("dbName", config.DBName, "database name")
+	dbUsername = flag.String("dbUsername", config.DBUsername, "database username")
+	dbPassword = flag.String("dbPassword", config.DBPassword, "database password")
+
 	homeTempl = template.Must(template.ParseFiles(config.ClientPath + "/index.html"))
 }
 
@@ -50,17 +57,17 @@ func loadConfig() {
 func main() {
 	flag.Parse()
 
-	initDB()
+	database.InitConnection(*dbName, *dbUsername, *dbPassword)
 
 	// Initialize websocket hub
-	go h.run()
+	go rpcWebsocket.RunHub()
 
 	// Register rpc methods
 	initRPCRegistration()
 
 	// Define requests handlers
-	http.Handle("/jsonrpc", websocket.Handler(jsonrpcHandler))
-	http.Handle("/push", websocket.Handler(pushHandler))
+	http.Handle("/jsonrpc", websocket.Handler(rpcWebsocket.JsonrpcHandler))
+	http.Handle("/push", websocket.Handler(rpcWebsocket.PushHandler))
 	http.HandleFunc("/", serveIndex)
 
 	// Start server
@@ -104,7 +111,7 @@ func validFileRequest(path string) bool {
 }
 
 func initRPCRegistration() {
-	userRPCService := new(UserRPCService)
+	userRPCService := new(users.UserRPCService)
 	rpc.Register(userRPCService)
 }
 
