@@ -7,7 +7,6 @@ import (
 	"net/rpc"
 	"io/ioutil"
 	"strings"
-	"text/template"
 	"encoding/json"
 	"golang.org/x/net/websocket"
 	"github.com/Gaiidenn/gowa-backend/database"
@@ -28,7 +27,6 @@ var clientDir *string
 var dbName *string
 var dbUsername *string
 var dbPassword *string
-var homeTempl *template.Template
 
 func init() {
 	loadConfig()
@@ -37,8 +35,6 @@ func init() {
 	dbName = flag.String("dbName", config.DBName, "database name")
 	dbUsername = flag.String("dbUsername", config.DBUsername, "database username")
 	dbPassword = flag.String("dbPassword", config.DBPassword, "database password")
-
-	homeTempl = template.Must(template.ParseFiles(config.ClientPath + "/index.html"))
 }
 
 func loadConfig() {
@@ -88,7 +84,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	homeTempl.Execute(w, r.Host)
+	http.ServeFile(w, r, *clientDir + "/index.html")
 }
 
 func validFileRequest(path string) bool {

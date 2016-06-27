@@ -1,5 +1,5 @@
 {
-    "clientPath": "/home/jerome/node-workspace/gowa-frontend",
+    "clientPath": "/home/jerome/node-workspace/gowa-frontend/dist",
     "dbName": "test",
     "dbUsername": "root",
     "dbPassword": ""
