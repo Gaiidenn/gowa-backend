@@ -1,6 +1,9 @@
 package rpcWebsocket
 
-import "log"
+import (
+	"log"
+	"fmt"
+)
 
 // hub maintains the set of active connections and broadcasts messages to the
 // connections.
@@ -38,6 +41,8 @@ func (h *hub) run() {
 		select {
 		case c := <-h.register:
 			h.connections[c] = true
+			fmt.Println("Number of connections : ")
+			fmt.Println(len(h.connections))
 		case c := <-h.unregister:
 			if _, ok := h.connections[c]; ok {
 				delete(h.connections, c)

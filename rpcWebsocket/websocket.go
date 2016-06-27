@@ -8,7 +8,27 @@ import (
 	"net/rpc/jsonrpc"
 	"log"
 	//"time"
+	"time"
+	"fmt"
 )
+
+// connection is an middleman between the websocket connection and the hub.
+type connection struct {
+	// The websocket connection
+	ws *websocket.Conn
+
+	// The rpc client
+	rc *rpc.Client
+
+	// Buffered channel of outbound messages.
+	call chan *RpcCall
+}
+
+type RpcCall struct {
+	Method string
+	Args interface{}
+	Reply interface{}
+}
 
 func JsonrpcHandler(ws *websocket.Conn) {
 	log.Println("connection websocket on jsonrpcHandler")
@@ -20,8 +40,8 @@ func PushHandler(ws *websocket.Conn) {
 	rc := jsonrpc.NewClient(ws)
 
 	call := make(chan *RpcCall)
-
 	c := &connection{
+		ws: ws,
 		rc: rc,
 		call: call,
 	}
@@ -38,41 +58,34 @@ func PushHandler(ws *websocket.Conn) {
 	log.Println(reply)*/
 }
 
-// connection is an middleman between the websocket connection and the hub.
-type connection struct {
-	// The rpc client
-	rc *rpc.Client
-
-	// Buffered channel of outbound messages.
-	call chan *RpcCall
-}
-
-type RpcCall struct {
-	Method string
-	Args interface{}
-	Reply interface{}
-}
-
 // callPump pumps calls from the hub to the rpc connection.
 func (c *connection) callPump() {
+	ticker := time.NewTicker(30 * time.Second)
 	defer func() {
 		c.rc.Close()
+		h.unregister <- c
 	}()
-	log.Println("we are in callpump")
 	for {
 		select {
-		case call, ok := <- c.call:
+		case call, ok := <- c.call :
 			if !ok {
+				h.unregister <- c
 				return
 			}
 			if err := c.rc.Call(call.Method, call.Args, &call.Reply); err != nil {
 				log.Println("error calling : ")
 				log.Println(err)
+				h.unregister <- c
 				return
-			} else {
-				log.Println("call ok -> reply : ")
-				log.Println(call.Reply)
 			}
+			log.Println("call ok -> reply : ")
+			log.Println(call.Reply)
+		case <- ticker.C :
+			if _, err := c.ws.Write([]byte{}); err != nil {
+				fmt.Println("no response from client -> closing connection!")
+				return
+			}
+			fmt.Println("client still connected -> ok!")
 		}
 	}
 }
