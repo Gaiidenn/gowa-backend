@@ -32,14 +32,6 @@ type RpcCall struct {
 
 func JsonrpcHandler(ws *websocket.Conn) {
 	log.Println("connection websocket on jsonrpcHandler")
-	var conn string
-	_, err := ws.Read(conn)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-
 	jsonrpc.ServeConn(ws)
 }
 
@@ -55,19 +47,15 @@ func PushHandler(ws *websocket.Conn) {
 	}
 	h.register <- c
 	c.callPump()
-/*
+	/*
 	var reply string
 
-	err := rc.Call("App.setToken", token, &reply)
+	err := rc.Call("App.log", "My test", &reply)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	if reply == "ok" {
-		c.callPump()
-	}
-	log.Println(reply)
-	return*/
+	log.Println(reply)*/
 }
 
 // callPump pumps calls from the hub to the rpc connection.
