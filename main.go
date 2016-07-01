@@ -110,15 +110,3 @@ func initRPCRegistration() {
 	userRPCService := new(users.UserRPCService)
 	rpc.Register(userRPCService)
 }
-
-/*
-// Msg type
-type Msg string
-
-// Echo just response with the same msg as received
-func (msg *Msg) Echo(str string, reply *string) error {
-	log.Println("Msg.Echo(", str, ")")
-	*reply = str
-	return nil
-}
-*/
