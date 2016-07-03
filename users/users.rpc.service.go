@@ -1,14 +1,25 @@
 package users
 
-import "github.com/Gaiidenn/gowa-backend/rpcWebsocket"
+import (
+	"github.com/Gaiidenn/gowa-backend/rpcWebsocket"
+	"log"
+)
 
 // UserRPCService for jsonRPC requests
 type UserRPCService struct {
 }
 
 // Save the user in database
-func (us *UserRPCService) Save(user *User, reply *User) error {
-	err := user.Save();
+func (us *UserRPCService) Save(
+		params *struct{
+			Token string
+			User User
+		}, reply *User) error {
+	log.Println(params)
+	log.Println(string(params.User.Username))
+	user := params.User
+
+	err := user.Save()
 	if err != nil {
 		return err
 	}
@@ -19,7 +30,7 @@ func (us *UserRPCService) Save(user *User, reply *User) error {
 		Reply: &s,
 	}
 	rpcWebsocket.Broadcast(&call)
-	*reply = *user
+	*reply = user
 	return nil
 }
 
