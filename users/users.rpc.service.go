@@ -3,6 +3,7 @@ package users
 import (
 	"github.com/Gaiidenn/gowa-backend/rpcWebsocket"
 	"log"
+	"errors"
 )
 
 // UserRPCService for jsonRPC requests
@@ -19,9 +20,18 @@ func (us *UserRPCService) Save(
 	log.Println(string(params.User.Username))
 	user := params.User
 
-	err := user.Save()
+	free, err := user.availableUsername()
 	if err != nil {
 		return err
+	}
+	if free == false {
+		return errors.New("username already exists")
+	}
+	if user.readyForSave() {
+		err := user.Save()
+		if err != nil {
+			return err
+		}
 	}
 	var s string
 	call := rpcWebsocket.RpcCall{

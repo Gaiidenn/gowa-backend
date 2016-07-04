@@ -11,6 +11,15 @@ import (
 
 // Save the user in database
 func (user *User) Save() error {
+	ok, err := user.availableUsername();
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	if !ok {
+		return errors.New("username already exists")
+	}
+
 	db := database.GetDB()
 	if user.RegistrationDate.IsZero() {
 		user.RegistrationDate = time.Now()
@@ -59,7 +68,7 @@ func (user *User) Save() error {
 			)
 	}
 	log.Println(q)
-	_, err := db.Run(q)
+	_, err = db.Run(q)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -130,4 +139,41 @@ func (user *User) GetAll() (*[]User, error) {
 	}
 	log.Println(users)
 	return &users, nil
+}
+
+func (user *User) availableUsername() (bool, error) {
+	db := database.GetDB()
+	q := ara.NewQuery(`FOR user IN users FILTER user.Username == %q RETURN user`, user.Username).Cache(true).BatchSize(500)
+	resp, err := db.Run(q)
+	if err != nil {
+		log.Println(err)
+		return false, err
+	}
+	var users []User
+	err = json.Unmarshal(resp, &users)
+	if err != nil {
+		log.Println(err)
+		return false, err
+	}
+	if len(users) > 0 {
+		for _, u := range users {
+			if u.Username == user.Username && u.Key != user.Key {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
+}
+
+func (user *User) readyForSave() bool {
+	if len(user.Username) < 4 {
+		return false
+	}
+	if len(user.Password) < 4 {
+		return false
+	}
+	if len(user.Email) < 4 {
+		return false
+	}
+	return true
 }
