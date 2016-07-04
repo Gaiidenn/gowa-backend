@@ -13,11 +13,16 @@ type User struct {
 	Username string `unique:"users" required:"-"`
 	Email string `unique:"users" required:"-"`
 	Password string `required:"-"`
-	Age int
-	Gender string `enum:"M,F"`
+	RegistrationDate time.Time
+	Profile UserProfile
 	Likes []string // TODO: Change for an array of key => value for "UserId" => bool (dislike option)
 	Meets []string // Users already met
-	RegistrationDate time.Time
+}
+
+type UserProfile struct {
+	Age int
+	Gender string
+	Description string
 }
 
 /**

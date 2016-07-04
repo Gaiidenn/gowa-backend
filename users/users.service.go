@@ -31,20 +31,24 @@ func (user *User) Save() error {
 				Username: %q,
 				Email: %q,
 				Password: %q,
-				Age: %d,
-				Gender: %q,
+				Profile: {
+					Age: %d,
+					Gender: %q,
+					Description: %q
+				},
+				RegistrationDate: %s,
 				Likes: %q,
-				Meets: %q,
-				RegistrationDate: %s
+				Meets: %q
 			} IN users`,
 			user.Username,
 			user.Email,
 			user.Password,
-			user.Age,
-			user.Gender,
+			user.Profile.Age,
+			user.Profile.Gender,
+			user.Profile.Description,
+			rd,
 			user.Likes,
 			user.Meets,
-			rd,
 			)
 
 	} else {
@@ -52,8 +56,11 @@ func (user *User) Save() error {
 				Username: %q,
 				Email: %q,
 				Password: %q,
-				Age: %d,
-				Gender: %q,
+				Profile: {
+					Age: %d,
+					Gender: %q,
+					Description: %q
+				},
 				Likes: %q,
 				Meets: %q
 			} IN users`,
@@ -61,8 +68,9 @@ func (user *User) Save() error {
 			user.Username,
 			user.Email,
 			user.Password,
-			user.Age,
-			user.Gender,
+			user.Profile.Age,
+			user.Profile.Gender,
+			user.Profile.Description,
 			user.Likes,
 			user.Meets,
 			)
@@ -157,7 +165,7 @@ func (user *User) availableUsername() (bool, error) {
 	}
 	if len(users) > 0 {
 		for _, u := range users {
-			if u.Username == user.Username && u.Key != user.Key {
+			if u.Username == user.Username && *u.Document.Key != *user.Document.Key {
 				return false, nil
 			}
 		}
@@ -166,6 +174,7 @@ func (user *User) availableUsername() (bool, error) {
 }
 
 func (user *User) readyForSave() bool {
+	log.Println(len(user.Username), len(user.Password), len(user.Email))
 	if len(user.Username) < 4 {
 		return false
 	}

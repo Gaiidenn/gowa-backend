@@ -24,7 +24,7 @@ func (us *UserRPCService) Save(
 	if err != nil {
 		return err
 	}
-	if free == false {
+	if !free {
 		return errors.New("username already exists")
 	}
 	if user.readyForSave() {
