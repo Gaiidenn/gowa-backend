@@ -59,6 +59,7 @@ func (h *hub) run() {
 		case c := <-h.unregister:
 			for key, cTmp := range h.connections {
 				if cTmp == c {
+					fmt.Println("Unregistring connection : ", key)
 					delete(h.connections, key)
 					close(c.call)
 				}

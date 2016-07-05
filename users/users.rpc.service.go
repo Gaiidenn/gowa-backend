@@ -2,7 +2,6 @@ package users
 
 import (
 	"github.com/Gaiidenn/gowa-backend/rpcWebsocket"
-	"log"
 	"errors"
 )
 
@@ -11,22 +10,17 @@ type UserRPCService struct {
 }
 
 // Save the user in database
-func (us *UserRPCService) Save(
-		params *struct{
-			Token string
-			User User
-		}, reply *User) error {
-	log.Println(params)
-	log.Println(string(params.User.Username))
-	user := params.User
-
+func (us *UserRPCService) Save(user *User, reply *User) error {
 	free, err := user.availableUsername()
 	if err != nil {
 		return err
 	}
 	if !free {
+		user.Username = ""
+		h.register <- user
 		return errors.New("username already exists")
 	}
+	h.register <- user
 	if user.readyForSave() {
 		err := user.Save()
 		if err != nil {
@@ -40,7 +34,7 @@ func (us *UserRPCService) Save(
 		Reply: &s,
 	}
 	rpcWebsocket.Broadcast(&call)
-	*reply = user
+	*reply = *user
 	return nil
 }
 

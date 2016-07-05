@@ -28,13 +28,7 @@ type RpcCall struct {
 
 func JsonrpcHandler(ws *websocket.Conn) {
 	log.Println("connection websocket on jsonrpcHandler")
-	var key = make([]byte, KEY_LENGTH + 4) // KEY_LENGTH + 4 because what we receive is ["..key."]
-	_, err := ws.Read(key)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	skey := cleanKey(key)
+	skey := readKey(ws)
 	if !h.keyExists(skey) {
 		log.Println("invalid key")
 		return
@@ -44,6 +38,12 @@ func JsonrpcHandler(ws *websocket.Conn) {
 
 func PushHandler(ws *websocket.Conn) {
 	log.Println("connection websocket on pushHandler")
+
+	skey := readKey(ws)
+	if h.keyExists(skey) {
+		h.unregister <- h.connections[skey]
+	}
+
 	rc := jsonrpc.NewClient(ws)
 
 	call := make(chan *RpcCall)
@@ -54,6 +54,16 @@ func PushHandler(ws *websocket.Conn) {
 	}
 	h.register <- c
 	c.callPump()
+}
+
+func readKey(ws *websocket.Conn) string {
+	var key = make([]byte, KEY_LENGTH + 4) // KEY_LENGTH + 4 because what we receive is ["..key."]
+	_, err := ws.Read(key)
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+	return cleanKey(key)
 }
 
 // callPump pumps calls from the hub to the rpc connection.
@@ -76,8 +86,7 @@ func (c *connection) callPump() {
 				h.unregister <- c
 				return
 			}
-			log.Println("call ok -> reply : ")
-			log.Println(call.Reply)
+			log.Println("call ok -> reply : ", call.Reply)
 		case <- ticker.C :
 			if _, err := c.ws.Write([]byte{}); err != nil {
 				return

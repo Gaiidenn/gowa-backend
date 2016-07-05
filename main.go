@@ -57,6 +57,8 @@ func main() {
 
 	// Initialize websocket hub
 	go rpcWebsocket.RunHub()
+	// Initialize users hub
+	go users.RunHub()
 
 	// Register rpc methods
 	initRPCRegistration()
