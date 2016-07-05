@@ -164,8 +164,14 @@ func (user *User) availableUsername() (bool, error) {
 		return false, err
 	}
 	if len(users) > 0 {
+		var key string
+		if user.Document.Key != nil {
+			key = *user.Document.Key
+		} else {
+			key = ""
+		}
 		for _, u := range users {
-			if u.Username == user.Username && *u.Document.Key != *user.Document.Key {
+			if u.Username == user.Username && *u.Document.Key != key {
 				return false, nil
 			}
 		}
