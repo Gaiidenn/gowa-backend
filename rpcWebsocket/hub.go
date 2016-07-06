@@ -4,22 +4,29 @@ import (
 	"log"
 	"fmt"
 	"math/rand"
+	"github.com/Gaiidenn/gowa-backend/users"
 )
 
 // hub maintains the set of active connections and broadcasts messages to the
 // connections.
 type hub struct {
 	// Inbound messages from the connections.
-	broadcast chan *RpcCall
+	broadcast          chan *RpcCall
 
 	// Register requests from the connections.
-	register chan *connection
+	register           chan *connection
 
 	// Unregister requests from connections.
-	unregister chan *connection
+	unregister         chan *connection
+
+	// Register a user to its connection.
+	registerUserChan   chan *users.User
+
+	// Unregister a user from its connection.
+	unregisterUserChan chan *users.User
 
 	// Registered connections.
-	connections map[string]*connection
+	connections        map[string]*connection
 }
 
 const KEY_LENGTH = 8
@@ -28,6 +35,8 @@ var h = hub{
 	broadcast:   make(chan *RpcCall),
 	register:    make(chan *connection),
 	unregister:  make(chan *connection),
+	registerUserChan:  make(chan *users.User),
+	unregisterUserChan:  make(chan *users.User),
 	connections: make(map[string]*connection),
 }
 
@@ -75,6 +84,26 @@ func (h *hub) run() {
 					delete(h.connections, key)
 				}
 			}
+		case user := <- h.registerUserChan:
+			key := user.Token
+			if len(key) == 0 {
+				log.Println("empty key")
+				return
+			}
+			cUser := h.connections[key].user
+			user.Connected = true
+			if h.keyExists(key) && cUser != nil && cUser.Username != user.Username {
+				log.Println("unregistring before registring again")
+				h.unregisterUserChan <- user
+			}
+			h.connections[key].user = user
+			log.Println("User registered! key: ", key)
+		case user := <- h.unregisterUserChan:
+			user.Connected = false
+			key := user.Token
+			var u users.User
+			*h.connections[key].user = u
+			log.Println("User unregistered! key: ", key)
 		}
 	}
 }

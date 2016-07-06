@@ -12,7 +12,7 @@ import (
 // Save the user in database
 func (user *User) Save() error {
 	connected := user.Connected
-	ok, err := user.availableUsername();
+	ok, err := user.AvailableUsername();
 	if err != nil {
 		log.Println(err)
 		return err

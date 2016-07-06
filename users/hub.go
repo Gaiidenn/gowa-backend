@@ -1,5 +1,5 @@
 package users
-
+/*
 import (
 	"log"
 	"fmt"
@@ -86,3 +86,4 @@ func (h *hub) keyExists(key string) bool {
 	_, ok := h.connectedUsers[key];
 	return ok
 }
+*/

@@ -6,6 +6,7 @@ import (
 	"net/rpc/jsonrpc"
 	"log"
 	"time"
+	"github.com/Gaiidenn/gowa-backend/users"
 )
 
 // connection is an middleman between the websocket connection and the hub.
@@ -15,6 +16,9 @@ type connection struct {
 
 	// The rpc client
 	rc *rpc.Client
+
+	// The user attached to connection
+	user *users.User
 
 	// Buffered channel of outbound messages.
 	call chan *RpcCall
@@ -46,10 +50,12 @@ func PushHandler(ws *websocket.Conn) {
 
 	rc := jsonrpc.NewClient(ws)
 
+	var user *users.User
 	call := make(chan *RpcCall)
 	c := &connection{
 		ws: ws,
 		rc: rc,
+		user: user,
 		call: call,
 	}
 	h.register <- c

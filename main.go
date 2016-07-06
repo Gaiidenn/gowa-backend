@@ -11,7 +11,6 @@ import (
 	"golang.org/x/net/websocket"
 	"github.com/Gaiidenn/gowa-backend/database"
 	"github.com/Gaiidenn/gowa-backend/rpcWebsocket"
-	"github.com/Gaiidenn/gowa-backend/users"
 )
 
 type Configuration struct {
@@ -57,8 +56,6 @@ func main() {
 
 	// Initialize websocket hub
 	go rpcWebsocket.RunHub()
-	// Initialize users hub
-	go users.RunHub()
 
 	// Register rpc methods
 	initRPCRegistration()
@@ -109,6 +106,6 @@ func validFileRequest(path string) bool {
 }
 
 func initRPCRegistration() {
-	userRPCService := new(users.UserRPCService)
+	userRPCService := new(rpcWebsocket.UserRPCService)
 	rpc.Register(userRPCService)
 }

@@ -25,7 +25,7 @@ func (user *User) Login() error {
 	user.Connected = true
 	return nil
 }
-
+/*
 // Get all Users from collection
 func (user *User) GetAllWithConnected() (*[]User, error) {
 	users, err := user.GetAll()
@@ -50,8 +50,8 @@ func (user *User) GetAllWithConnected() (*[]User, error) {
 
 	return &users, nil
 }
-
-func (user *User) availableUsername() (bool, error) {
+*/
+func (user *User) AvailableUsername() (bool, error) {
 	u, err := user.getByUsername(user.Username)
 	if err != nil {
 		return false, err
@@ -65,15 +65,11 @@ func (user *User) availableUsername() (bool, error) {
 	if u != nil && u.Username == user.Username && *u.Document.Key != key {
 		return false, nil
 	}
-	for _, u = range h.connectedUsers {
-		if u.Username == user.Username && u.Token != user.Token {
-			return false, nil
-		}
-	}
+
 	return true, nil
 }
 
-func (user *User) readyForSave() bool {
+func (user *User) ReadyForSave() bool {
 	log.Println(len(user.Username), len(user.Password), len(user.Email))
 	if len(user.Username) < 4 {
 		return false
