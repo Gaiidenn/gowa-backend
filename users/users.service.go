@@ -2,29 +2,36 @@ package users
 
 import (
 	"log"
-	"encoding/json"
-	ara "github.com/solher/arangolite"
-	"github.com/Gaiidenn/gowa-backend/database"
+	"errors"
 )
 
-// Get all Users from collection
-func (user *User) GetAll() (*[]User, error) {
-	db := database.GetDB()
-	q := ara.NewQuery(`FOR user IN users RETURN user`).Cache(true).BatchSize(500)
-	log.Println(q)
-	resp, err := db.Run(q)
+// Log the user in app
+func (user *User) Login() error {
+	token := user.Token
+	userTmp, err := user.getByUsername(user.Username)
 	if err != nil {
-		log.Println(err)
-		return nil, err
+		return err
 	}
-	var users []User
-	err = json.Unmarshal(resp, &users)
-	if err != nil {
-		log.Println(err)
-		return nil, err
+	if userTmp == nil {
+		return errors.New("unknown username")
 	}
-	log.Println(users)
+	if (userTmp.Password != user.Password) {
+		return errors.New("wrong password")
+	}
+	*user = *userTmp
+	if len(token) > 0 {
+		user.Token = token
+	}
+	user.Connected = true
+	return nil
+}
 
+// Get all Users from collection
+func (user *User) GetAllWithConnected() (*[]User, error) {
+	users, err := user.GetAll()
+	if err != nil {
+		return nil, err
+	}
 	// Adding connected users
 	for _, cUser := range h.connectedUsers {
 		exists := false
@@ -32,6 +39,7 @@ func (user *User) GetAll() (*[]User, error) {
 			if cUser.Username == user.Username {
 				exists = true
 				users[i].Connected = true
+				users[i].Token = cUser.Token
 				continue
 			}
 		}
@@ -44,30 +52,22 @@ func (user *User) GetAll() (*[]User, error) {
 }
 
 func (user *User) availableUsername() (bool, error) {
-	db := database.GetDB()
-	q := ara.NewQuery(`FOR user IN users FILTER user.Username == %q RETURN user`, user.Username).Cache(true).BatchSize(500)
-	resp, err := db.Run(q)
+	u, err := user.getByUsername(user.Username)
 	if err != nil {
-		log.Println(err)
 		return false, err
 	}
-	var users []User
-	err = json.Unmarshal(resp, &users)
-	if err != nil {
-		log.Println(err)
-		return false, err
+	var key string
+	if user.Document.Key != nil {
+		key = *user.Document.Key
+	} else {
+		key = ""
 	}
-	if len(users) > 0 {
-		var key string
-		if user.Document.Key != nil {
-			key = *user.Document.Key
-		} else {
-			key = ""
-		}
-		for _, u := range users {
-			if u.Username == user.Username && *u.Document.Key != key {
-				return false, nil
-			}
+	if u != nil && u.Username == user.Username && *u.Document.Key != key {
+		return false, nil
+	}
+	for _, u = range h.connectedUsers {
+		if u.Username == user.Username && u.Token != user.Token {
+			return false, nil
 		}
 	}
 	return true, nil

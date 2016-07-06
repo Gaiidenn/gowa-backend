@@ -1,7 +1,6 @@
 package users
 
 import (
-	"github.com/Gaiidenn/gowa-backend/rpcWebsocket"
 	"errors"
 )
 
@@ -16,8 +15,6 @@ func (us *UserRPCService) Save(user *User, reply *User) error {
 		return err
 	}
 	if !free {
-		user.Username = ""
-		h.register <- user
 		return errors.New("username already exists")
 	}
 	h.register <- user
@@ -27,13 +24,6 @@ func (us *UserRPCService) Save(user *User, reply *User) error {
 			return err
 		}
 	}
-	var s string
-	call := rpcWebsocket.RpcCall{
-		Method: "UsersService.updateList",
-		Args: user,
-		Reply: &s,
-	}
-	rpcWebsocket.Broadcast(&call)
 	*reply = *user
 	return nil
 }
@@ -44,14 +34,25 @@ func (us *UserRPCService) Login(userLogin *User, user *User) error {
 	if err != nil {
 		return err
 	}
+	h.register <- userLogin
+
 	*user = *userLogin
 	return nil
 }
 
+// Log the user in app
+func (us *UserRPCService) Logout(user *User, ok *bool) error {
+	h.unregister <- user
+	*ok = true
+	return nil
+}
+
+
+
 // Get all UserRPCService from collection
 func (us *UserRPCService) GetAll(_ *string, reply *[]User) error {
 	var user User;
-	users, err := user.GetAll()
+	users, err := user.GetAllWithConnected()
 	if err != nil {
 		return err
 	}

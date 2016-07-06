@@ -11,6 +11,7 @@ import (
 
 // Save the user in database
 func (user *User) Save() error {
+	connected := user.Connected
 	ok, err := user.availableUsername();
 	if err != nil {
 		log.Println(err)
@@ -28,7 +29,6 @@ func (user *User) Save() error {
 	if user.Key == nil {
 		rd, _ := user.RegistrationDate.MarshalJSON()
 		q = ara.NewQuery(`INSERT {
-				Token: %q,
 				Username: %q,
 				Email: %q,
 				Password: %q,
@@ -41,7 +41,6 @@ func (user *User) Save() error {
 				Likes: %q,
 				Meets: %q
 			} IN users`,
-			user.Token,
 			user.Username,
 			user.Email,
 			user.Password,
@@ -55,7 +54,6 @@ func (user *User) Save() error {
 
 	} else {
 		q = ara.NewQuery(`UPDATE %q WITH {
-				Token: %q,
 				Username: %q,
 				Email: %q,
 				Password: %q,
@@ -68,7 +66,6 @@ func (user *User) Save() error {
 				Meets: %q
 			} IN users`,
 			*user.Key,
-			user.Token,
 			user.Username,
 			user.Email,
 			user.Password,
@@ -101,34 +98,47 @@ func (user *User) Save() error {
 	log.Println(users)
 	if len(users) > 0 {
 		*user = users[0]
+		user.Connected = connected
+		log.Println("Connected state : ", connected, user.Connected)
 		return nil
 	}
 	return errors.New("End of process...")
 }
 
-// Log the user in app
-func (user *User) Login() error {
+func (user *User) GetAll() ([]User, error) {
 	db := database.GetDB()
-	q := ara.NewQuery(`FOR user IN users FILTER user.Username == %q RETURN user`, user.Username).Cache(true).BatchSize(500)
+	q := ara.NewQuery(`FOR user IN users RETURN user`).Cache(true).BatchSize(500)
+	log.Println(q)
 	resp, err := db.Run(q)
 	if err != nil {
 		log.Println(err)
-		return err
+		return nil, err
 	}
 	var users []User
 	err = json.Unmarshal(resp, &users)
 	if err != nil {
 		log.Println(err)
-		return err
+		return nil, err
 	}
 	log.Println(users)
-	if len(users) > 0 {
-		userTmp := users[0]
-		if (userTmp.Password != user.Password) {
-			return errors.New("wrong password")
-		}
-		*user = userTmp
-		return nil
+
+	return users, nil
+}
+
+func (user *User) getByUsername(username string) (*User, error) {
+	db := database.GetDB()
+	q := ara.NewQuery(`FOR user IN users FILTER user.Username == %q RETURN user`, user.Username).Cache(true).BatchSize(500)
+	resp, err := db.Run(q)
+	if err != nil {
+		return nil, err
 	}
-	return errors.New("unknown username")
+	var users []User
+	err = json.Unmarshal(resp, &users)
+	if err != nil {
+		return nil, err
+	}
+	if len(users) > 0 {
+		return &users[0], nil
+	}
+	return nil, nil
 }
