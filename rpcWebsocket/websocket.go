@@ -32,8 +32,8 @@ type RpcCall struct {
 
 func JsonrpcHandler(ws *websocket.Conn) {
 	log.Println("connection websocket on jsonrpcHandler")
-	skey := readKey(ws)
-	if !h.keyExists(skey) {
+	key := readKey(ws)
+	if !h.keyExists(key) {
 		log.Println("invalid key")
 		return
 	}
@@ -43,22 +43,32 @@ func JsonrpcHandler(ws *websocket.Conn) {
 func PushHandler(ws *websocket.Conn) {
 	log.Println("connection websocket on pushHandler")
 
-	skey := readKey(ws)
-	if h.keyExists(skey) {
-		h.unregister <- h.connections[skey]
+	var c *connection
+
+	// Looking for an existing key
+	key := readKey(ws)
+	if len(key) > 0 && h.keyExists(key) {
+		// Key exists => get connection
+		c = h.connections[key]
+	} else {
+		// No key or key doesn't exists => creating a new connection
+		rc := jsonrpc.NewClient(ws)
+		key = h.generateKey()
+		user := &users.User{
+			Token: key,
+		}
+		call := make(chan *RpcCall)
+		c = &connection{
+			ws: ws,
+			rc: rc,
+			user: user,
+			call: call,
+		}
 	}
 
-	rc := jsonrpc.NewClient(ws)
-
-	var user *users.User
-	call := make(chan *RpcCall)
-	c := &connection{
-		ws: ws,
-		rc: rc,
-		user: user,
-		call: call,
-	}
+	// Registering the connection
 	h.register <- c
+
 	c.callPump()
 }
 
@@ -82,6 +92,7 @@ func (c *connection) callPump() {
 	for {
 		select {
 		case call, ok := <- c.call :
+			log.Println("trying to call :", call)
 			if !ok {
 				h.unregister <- c
 				return

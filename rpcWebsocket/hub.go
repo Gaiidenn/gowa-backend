@@ -2,7 +2,6 @@ package rpcWebsocket
 
 import (
 	"log"
-	"fmt"
 	"math/rand"
 	"github.com/Gaiidenn/gowa-backend/users"
 )
@@ -11,41 +10,37 @@ import (
 // connections.
 type hub struct {
 	// Inbound messages from the connections.
-	broadcast          chan *RpcCall
+	broadcast      chan *RpcCall
 
 	// Register requests from the connections.
-	register           chan *connection
+	register       chan *connection
 
 	// Unregister requests from connections.
-	unregister         chan *connection
+	unregister     chan *connection
 
 	// Register a user to its connection.
-	registerUserChan   chan *users.User
+	registerUser   chan *users.User
 
 	// Unregister a user from its connection.
-	unregisterUserChan chan *users.User
+	unregisterUser chan *users.User
 
 	// Registered connections.
-	connections        map[string]*connection
+	connections    map[string]*connection
 }
 
 const KEY_LENGTH = 8
 
 var h = hub{
-	broadcast:   make(chan *RpcCall),
-	register:    make(chan *connection),
-	unregister:  make(chan *connection),
-	registerUserChan:  make(chan *users.User),
-	unregisterUserChan:  make(chan *users.User),
-	connections: make(map[string]*connection),
+	broadcast:   	make(chan *RpcCall),
+	register:    	make(chan *connection),
+	unregister:  	make(chan *connection),
+	registerUser:  	make(chan *users.User),
+	unregisterUser: make(chan *users.User),
+	connections: 	make(map[string]*connection),
 }
 
 func RunHub() {
 	h.run();
-}
-
-func Broadcast(call *RpcCall) {
-	h.broadcast <- call
 }
 
 func (h *hub) run() {
@@ -53,73 +48,74 @@ func (h *hub) run() {
 		select {
 		case c := <-h.register:
 			log.Println("trying to register")
-			key := h.generateKey(c)
+			key := c.user.Token
 			h.connections[key] = c
 			log.Println("Connection registered! key: ", key)
-			var reply bool
-			call := &RpcCall{
+			log.Println("Number of connections : ", len(h.connections))
+
+			var reply *bool
+			call := RpcCall{
 				Method: "App.setToken",
 				Args: key,
-				Reply: &reply,
+				Reply: reply,
 			}
-			fmt.Println("Number of connections : ")
-			fmt.Println(len(h.connections))
-			c.call <- call
+			c.call <- &call
 		case c := <-h.unregister:
 			for key, cTmp := range h.connections {
 				if cTmp == c {
-					fmt.Println("Unregistring connection : ", key)
+					log.Println("Unregistring connection : ", key)
 					delete(h.connections, key)
 					close(c.call)
 				}
 			}
-		case m := <-h.broadcast:
+		case m := <- h.broadcast:
 			log.Println("trying to broadcast")
 			log.Println(m)
 			for key, c := range h.connections {
 				select {
 				case c.call <- m:
 				default:
-					close(c.call)
+					log.Println("Broadcast failed => deleting connection : ", key)
 					delete(h.connections, key)
+					close(c.call)
 				}
 			}
-		case user := <- h.registerUserChan:
+		case user := <- h.registerUser:
+			log.Println("trying to register")
 			key := user.Token
 			if len(key) == 0 {
 				log.Println("empty key")
 				return
 			}
-			cUser := h.connections[key].user
-			user.Connected = true
-			if h.keyExists(key) && cUser != nil && cUser.Username != user.Username {
-				log.Println("unregistring before registring again")
-				h.unregisterUserChan <- user
+			if _, ok := h.connections[key]; !ok {
+				log.Println("unknown connection (key : \"", key, "\")")
+				return
 			}
 			h.connections[key].user = user
-			log.Println("User registered! key: ", key)
-		case user := <- h.unregisterUserChan:
-			user.Connected = false
+			log.Println("User registered! key: ", key, "; user:", *h.connections[key].user)
+		case user := <- h.unregisterUser:
 			key := user.Token
-			var u users.User
-			*h.connections[key].user = u
-			log.Println("User unregistered! key: ", key)
+			if (len(key) > 0) {
+				if _, ok := h.connections[key]; ok {
+					*h.connections[key].user = users.User{}
+				}
+				log.Println("User unregistered! key: ", key)
+			}
 		}
 	}
 }
 
 const lettersBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-func (h *hub) generateKey(c *connection) string {
+func (h *hub) generateKey() string {
 	key := randStringBytes(KEY_LENGTH)
 	log.Println("First key : ", key)
-	v, ok := h.connections[key]
-	for ok == true || (v != nil && v != c) {
+	_, ok := h.connections[key]
+	for ok == true {
 		key = randStringBytes(KEY_LENGTH)
-		v, ok = h.connections[key];
+		_, ok = h.connections[key];
 		log.Println("Other key : ", key)
 	}
-	log.Println("v, ok : ", v, ok)
 	return key
 }
 

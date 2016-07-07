@@ -27,13 +27,16 @@ func (us *UserRPCService) Save(user *users.User, reply *users.User) error {
 	}
 
 	if user.ReadyForSave() {
+		// Saving token
+		key := user.Token
 		err := user.Save()
 		if err != nil {
 			return err
 		}
+		user.Token = key
 	}
 
-	h.registerUserChan <- user
+	h.registerUser <- user
 
 	var resp *bool
 	call := RpcCall{
@@ -41,64 +44,71 @@ func (us *UserRPCService) Save(user *users.User, reply *users.User) error {
 		Args: user,
 		Reply: resp,
 	}
-	log.Println("Trying to broadcast")
+	log.Println("Trying to broadcast, key: ", user.Token)
 	h.broadcast <- &call
 
 	*reply = *user
 	return nil
 }
-/*
-var reply *bool
-var call RpcCall
-if user.Document.Key != nil && len(*user.Document.Key) > 0 {
-user.Token = ""
-call = RpcCall{
-Method: "UsersService.updateList",
-Args: user,
-Reply: reply,
-}
-} else {
-call = RpcCall{
-Method: "UsersService.removeFromList",
-Args: key,
-Reply: reply,
-}
-}
-h.broadcast <- &call
-*/
+
 // Log the user in app
 func (us *UserRPCService) Login(userLogin *users.User, user *users.User) error {
+	log.Println("Login : ", userLogin)
+	key := userLogin.Token
+
 	err := userLogin.Login()
 	if err != nil {
 		return err
 	}
-	h.registerUserChan <- userLogin
+	// userLogin now is full filled
+	userLogin.Connected = true
+	userLogin.Token = key
 
+	c, ok := h.connections[key]
+	if len(key) > 0 && ok && c.user != nil && c.user.Username != userLogin.Username {
+		var reply *bool
+		call := RpcCall{
+			Method: "UsersService.removeFromList",
+			Args: key,
+			Reply: reply,
+		}
+		h.broadcast <- &call
+	}
+
+	h.registerUser <- userLogin
+	/*
 	var reply *bool
-	var call RpcCall
-	user.Token = ""
-	call = RpcCall{
+	call := RpcCall{
 		Method: "UsersService.updateList",
-		Args: user,
+		Args: userLogin,
 		Reply: reply,
 	}
 	h.broadcast <- &call
-
+	*/
 	*user = *userLogin
 	return nil
 }
 
 // Log the user in app
 func (us *UserRPCService) Logout(user *users.User, ok *bool) error {
-	h.unregisterUserChan <- user
+	user.Connected = false
+	h.unregisterUser <- user
 
 	key := user.Token
 	var reply *bool
 	var call RpcCall
-	call = RpcCall{
-		Method: "UsersService.removeFromList",
-		Args: key,
-		Reply: reply,
+	if user.Document.Key != nil {
+		call = RpcCall{
+			Method: "UsersService.updateList",
+			Args: user,
+			Reply: reply,
+		}
+	} else {
+		call = RpcCall{
+			Method: "UsersService.removeFromList",
+			Args: key,
+			Reply: reply,
+		}
 	}
 	h.broadcast <- &call
 
@@ -127,7 +137,7 @@ func (us *UserRPCService) GetAll(_ *string, reply *[]users.User) error {
 					continue
 				}
 			}
-			if !exists {
+			if !exists && len(c.user.Username) > 0 {
 				users = append(users, *c.user)
 			}
 		}

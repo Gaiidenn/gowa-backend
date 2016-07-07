@@ -99,7 +99,6 @@ func (user *User) Save() error {
 	if len(users) > 0 {
 		*user = users[0]
 		user.Connected = connected
-		log.Println("Connected state : ", connected, user.Connected)
 		return nil
 	}
 	return errors.New("End of process...")
