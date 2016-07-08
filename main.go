@@ -15,7 +15,7 @@ import (
 
 type Configuration struct {
 	ClientPath string `json: "clientPath"`
-	DBName string `json: "dbName"`
+	DBName     string `json: "dbName"`
 	DBUsername string `json: "dbUsername"`
 	DBPassword string `json: "dbPassword"`
 }

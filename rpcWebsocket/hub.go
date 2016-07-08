@@ -31,11 +31,11 @@ type hub struct {
 const KEY_LENGTH = 8
 
 var h = hub{
-	broadcast:   	make(chan *RpcCall),
-	register:    	make(chan *connection),
-	unregister:  	make(chan *connection),
-	registerUser:  	make(chan *users.User),
-	unregisterUser: make(chan *users.User),
+	broadcast:   	make(chan *RpcCall, 100),
+	register:    	make(chan *connection, 100),
+	unregister:  	make(chan *connection, 100),
+	registerUser:  	make(chan *users.User, 100),
+	unregisterUser: make(chan *users.User, 100),
 	connections: 	make(map[string]*connection),
 }
 
@@ -47,60 +47,109 @@ func (h *hub) run() {
 	for {
 		select {
 		case c := <-h.register:
-			log.Println("trying to register")
-			key := c.user.Token
-			h.connections[key] = c
-			log.Println("Connection registered! key: ", key)
-			log.Println("Number of connections : ", len(h.connections))
-
-			var reply *bool
-			call := RpcCall{
-				Method: "App.setToken",
-				Args: key,
-				Reply: reply,
-			}
-			c.call <- &call
+			h.Register(c)
 		case c := <-h.unregister:
-			for key, cTmp := range h.connections {
-				if cTmp == c {
-					log.Println("Unregistring connection : ", key)
-					delete(h.connections, key)
-					close(c.call)
-				}
-			}
+			h.Unregister(c)
 		case m := <- h.broadcast:
-			log.Println("trying to broadcast")
-			log.Println(m)
-			for key, c := range h.connections {
-				select {
-				case c.call <- m:
-				default:
-					log.Println("Broadcast failed => deleting connection : ", key)
-					delete(h.connections, key)
-					close(c.call)
-				}
-			}
+			h.Broadcast(m)
 		case user := <- h.registerUser:
-			log.Println("trying to register")
-			key := user.Token
-			if len(key) == 0 {
-				log.Println("empty key")
-				return
-			}
-			if _, ok := h.connections[key]; !ok {
-				log.Println("unknown connection (key : \"", key, "\")")
-				return
-			}
-			h.connections[key].user = user
-			log.Println("User registered! key: ", key, "; user:", *h.connections[key].user)
+			h.RegisterUser(user)
 		case user := <- h.unregisterUser:
-			key := user.Token
-			if (len(key) > 0) {
-				if _, ok := h.connections[key]; ok {
-					*h.connections[key].user = users.User{}
+			h.UnregisterUser(user)
+		}
+	}
+}
+
+func (h *hub) Register(c *connection) {
+	log.Println("trying to register")
+	key := c.user.Token
+	h.connections[key] = c
+	log.Println("Connection registered! key: ", key)
+	log.Println("Number of connections : ", len(h.connections))
+
+	var reply *bool
+	call := RpcCall{
+		Method: "App.setToken",
+		Args: key,
+		Reply: reply,
+	}
+	c.call <- &call
+}
+
+func (h *hub) Unregister(c *connection) {
+	for key, cTmp := range h.connections {
+		if cTmp == c {
+			h.UnregisterUser(c.user)
+			log.Println("Unregistring connection : ", key)
+			delete(h.connections, key)
+			close(c.call)
+		}
+	}
+}
+
+func (h *hub) Broadcast(m *RpcCall) {
+	log.Println("trying to broadcast")
+	log.Println(m)
+	for key, c := range h.connections {
+		select {
+		case c.call <- m:
+		default:
+			log.Println("Broadcast failed => deleting connection : ", key)
+			h.Unregister(c)
+		}
+	}
+}
+
+func (h *hub) RegisterUser(user *users.User) {
+	log.Println("trying to register")
+	key := user.Token
+	if len(key) == 0 {
+		log.Println("empty key")
+		return
+	}
+	if _, ok := h.connections[key]; !ok {
+		log.Println("unknown connection (key : \"", key, "\")")
+		return
+	}
+	if h.connections[key].user != nil && h.connections[key].user.Token == user.Token && h.connections[key].user.Username != user.Username {
+		 h.UnregisterUser(h.connections[key].user)
+	}
+	h.connections[key].user = user
+	log.Println("User registered! key: ", key, "; user:", *h.connections[key].user)
+	var reply *bool
+	call := RpcCall{
+		Method: "UsersService.updateList",
+		Args: user,
+		Reply: reply,
+	}
+	h.Broadcast(&call)
+}
+
+func (h *hub) UnregisterUser(user *users.User) {
+	key := user.Token
+	if (len(key) > 0) {
+		if _, ok := h.connections[key]; ok {
+			if h.connections[key].user.Document.ID != nil {
+				log.Println("offline : ", *h.connections[key].user)
+				h.connections[key].user.Connected = false;
+				var reply *bool
+				call := RpcCall{
+					Method: "UsersService.updateList",
+					Args: user,
+					Reply: reply,
 				}
+				h.Broadcast(&call)
+			} else {
 				log.Println("User unregistered! key: ", key)
+				var reply *bool
+				call := RpcCall{
+					Method: "UsersService.removeFromList",
+					Args: user.Username,
+					Reply: reply,
+				}
+				h.Broadcast(&call)
 			}
+			*h.connections[key].user = users.User{}
 		}
 	}
 }

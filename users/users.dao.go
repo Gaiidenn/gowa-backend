@@ -40,7 +40,7 @@ func (user *User) Save() error {
 				RegistrationDate: %s,
 				Likes: %q,
 				Meets: %q
-			} IN users`,
+			} IN users RETURN NEW`,
 			user.Username,
 			user.Email,
 			user.Password,
@@ -64,7 +64,7 @@ func (user *User) Save() error {
 				},
 				Likes: %q,
 				Meets: %q
-			} IN users`,
+			} IN users RETURN NEW`,
 			*user.Key,
 			user.Username,
 			user.Email,
@@ -77,31 +77,19 @@ func (user *User) Save() error {
 		)
 	}
 	log.Println(q)
-	_, err = db.Run(q)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	var users []User
-	q = ara.NewQuery(`FOR user IN users FILTER user.Username == %q RETURN user`, user.Username).Cache(true).BatchSize(500)
 	resp, err := db.Run(q)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	log.Println(string(resp))
-	err = json.Unmarshal(resp, &users)
+	var tmpUser *User
+	err = json.Unmarshal(resp, tmpUser)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
-	log.Println(users)
-	if len(users) > 0 {
-		*user = users[0]
-		user.Connected = connected
-		return nil
-	}
-	return errors.New("End of process...")
+	tmpUser.Connected = connected
+	*user = *tmpUser
+	return nil
 }
 
 func (user *User) GetAll() ([]User, error) {

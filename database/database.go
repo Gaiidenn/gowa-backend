@@ -36,7 +36,7 @@ func GetDB() *ara.DB {
 func initCollections() {
 	cols := []string{
 		"users",
-		"docs",
+		"chats",
 	}
 
 	for _, col := range cols {
