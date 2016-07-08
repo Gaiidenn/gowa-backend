@@ -76,7 +76,7 @@ func (us *UserRPCService) Login(userLogin *users.User, user *users.User) error {
 	}
 
 	h.registerUser <- userLogin
-	/*
+
 	var reply *bool
 	call := RpcCall{
 		Method: "UsersService.updateList",
@@ -84,7 +84,7 @@ func (us *UserRPCService) Login(userLogin *users.User, user *users.User) error {
 		Reply: reply,
 	}
 	h.broadcast <- &call
-	*/
+
 	*user = *userLogin
 	return nil
 }

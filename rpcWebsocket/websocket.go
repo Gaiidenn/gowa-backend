@@ -57,7 +57,7 @@ func PushHandler(ws *websocket.Conn) {
 		user := &users.User{
 			Token: key,
 		}
-		call := make(chan *RpcCall)
+		call := make(chan *RpcCall, 100)
 		c = &connection{
 			ws: ws,
 			rc: rc,
