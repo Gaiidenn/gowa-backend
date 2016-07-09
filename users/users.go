@@ -17,12 +17,22 @@ type User struct {
 	RegistrationDate time.Time
 	Profile UserProfile
 	Connected bool
-	Likes []string // TODO: Change for an array of key => value for "UserId" => bool (dislike option)
-	Meets []string // Users already met
+	Likes []Like // TODO: Change for an array of key => value for "UserId" => bool (dislike option)
+	Meets []Meet // Users already met
 }
 
 type UserProfile struct {
-	Age int
-	Gender string
+	Age         int
+	Gender      string
 	Description string
+}
+
+type Meet struct {
+	UserID string
+	ChatID string
+}
+
+type Like struct {
+	UserID   string
+	Positive bool
 }

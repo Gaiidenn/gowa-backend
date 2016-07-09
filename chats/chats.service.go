@@ -1,11 +1,22 @@
 package chats
 
-import "github.com/Gaiidenn/gowa-backend/users"
+import (
+	"time"
+	"log"
+)
 
-func (chat *Chat) NewChat(users []*users.User) (*Chat, error) {
-	return chat.newChat(users)
-}
-
-func (chat *Chat) Update() error {
-	return chat.update()
+func NewMessage(msg *Message) (*Chat, error) {
+	log.Println("NewMessage : ", msg)
+	chat, err := GetByKey(msg.ChatKey)
+	if err != nil {
+		return nil, err
+	}
+	msg.CreatedAt = time.Now()
+	conv := append(chat.Conversation, *msg)
+	chat.Conversation = conv
+	err = chat.update()
+	if err != nil {
+		return nil, err
+	}
+	return chat, err
 }

@@ -28,7 +28,7 @@ func (user *User) Save() error {
 	var q *ara.Query
 	if user.Key == nil {
 		rd, _ := user.RegistrationDate.MarshalJSON()
-		q = ara.NewQuery(`INSERT {
+		q = ara.NewQuery(`FOR i IN 1..1 INSERT {
 				Username: %q,
 				Email: %q,
 				Password: %q,
@@ -50,7 +50,7 @@ func (user *User) Save() error {
 			rd,
 			user.Likes,
 			user.Meets,
-		)
+		).Cache(true).BatchSize(500)
 
 	} else {
 		q = ara.NewQuery(`UPDATE %q WITH {
@@ -74,7 +74,7 @@ func (user *User) Save() error {
 			user.Profile.Description,
 			user.Likes,
 			user.Meets,
-		)
+		).Cache(true).BatchSize(500)
 	}
 	log.Println(q)
 	resp, err := db.Run(q)
@@ -82,14 +82,17 @@ func (user *User) Save() error {
 		log.Println(err)
 		return err
 	}
-	var tmpUser *User
-	err = json.Unmarshal(resp, tmpUser)
+	var tmpUser []User
+	err = json.Unmarshal(resp, &tmpUser)
 	if err != nil {
 		return err
 	}
-	tmpUser.Connected = connected
-	*user = *tmpUser
-	return nil
+	if (len(tmpUser) > 0) {
+		tmpUser[0].Connected = connected
+		*user = tmpUser[0]
+		return nil
+	}
+	return errors.New("User.Save: db query returned empty")
 }
 
 func (user *User) GetAll() ([]User, error) {

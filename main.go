@@ -108,4 +108,6 @@ func validFileRequest(path string) bool {
 func initRPCRegistration() {
 	userRPCService := new(rpcWebsocket.UserRPCService)
 	rpc.Register(userRPCService)
+	chatRPCService := new(rpcWebsocket.ChatRPCService)
+	rpc.Register(chatRPCService)
 }
