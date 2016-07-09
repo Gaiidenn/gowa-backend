@@ -21,7 +21,7 @@ func NewChat(users []*users.User) (*Chat, error) {
 	var q *ara.Query
 	q = ara.NewQuery(`INSERT {
 			Users: %s,
-			Conversation: %q,
+			Conversation: %s,
 			CreatedAt: %s
 		} IN chats RETURN NEW`,
 		u,
@@ -57,8 +57,8 @@ func (chat *Chat) update() error {
 	db := database.GetDB()
 	var q *ara.Query
 	q = ara.NewQuery(`UPDATE %q WITH {
-			Users: %q,
-			Conversation: %q
+			Users: %s,
+			Conversation: %s
 		} IN chats`,
 		*chat.Key,
 		users,
