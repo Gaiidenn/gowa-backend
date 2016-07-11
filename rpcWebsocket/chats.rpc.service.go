@@ -17,6 +17,19 @@ func (cs *ChatRPCService) NewChat(users []*users.User, reply *chats.Chat) error 
 		return err
 	}
 
+	for _, u := range chat.Users {
+		key := u.Token
+		if c, ok := h.connections[key]; ok {
+			var rr *bool
+			call := RpcCall{
+				Method: "ChatService.registerChat",
+				Args: chat,
+				Reply: rr,
+			}
+			c.call <- &call
+		}
+	}
+
 	*reply = *chat
 	return nil
 }
@@ -26,6 +39,20 @@ func (cs *ChatRPCService) OpenChat(key *string, reply *chats.Chat) error {
 	if err != nil {
 		return err
 	}
+
+	for _, u := range chat.Users {
+		key := u.Token
+		if c, ok := h.connections[key]; ok {
+			var rr *bool
+			call := RpcCall{
+				Method: "ChatService.registerChat",
+				Args: chat,
+				Reply: rr,
+			}
+			c.call <- &call
+		}
+	}
+
 	*reply = *chat
 	return nil
 }
@@ -39,7 +66,9 @@ func (cs *ChatRPCService) NewMessage(m *chats.Message, r *bool) error {
 
 	for _, u := range chat.Users {
 		key := u.Token
+		log.Println(u.Username, u.Token)
 		if c, ok := h.connections[key]; ok {
+			log.Println(u.Token, " OK")
 			var rr *bool
 			call := RpcCall{
 				Method: "ChatService.msgReceived",
