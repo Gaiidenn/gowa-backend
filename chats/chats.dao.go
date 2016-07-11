@@ -82,7 +82,7 @@ func GetByKey(key string) (*Chat, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Chat Response : ", resp)
+
 	var tmpChat []Chat
 	err = json.Unmarshal(resp, &tmpChat)
 	if err != nil {

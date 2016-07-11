@@ -25,6 +25,14 @@ func (user *User) Save() error {
 	if user.RegistrationDate.IsZero() {
 		user.RegistrationDate = time.Now()
 	}
+	l, err := json.Marshal(user.Likes)
+	if err != nil {
+		return err
+	}
+	m, err := json.Marshal(user.Meets)
+	if err != nil {
+		return err
+	}
 	var q *ara.Query
 	if user.Key == nil {
 		rd, _ := user.RegistrationDate.MarshalJSON()
@@ -38,8 +46,8 @@ func (user *User) Save() error {
 					Description: %q
 				},
 				RegistrationDate: %s,
-				Likes: %q,
-				Meets: %q
+				Likes: %s,
+				Meets: %s
 			} IN users RETURN NEW`,
 			user.Username,
 			user.Email,
@@ -48,8 +56,8 @@ func (user *User) Save() error {
 			user.Profile.Gender,
 			user.Profile.Description,
 			rd,
-			user.Likes,
-			user.Meets,
+			l,
+			m,
 		).Cache(true).BatchSize(500)
 
 	} else {
@@ -62,8 +70,8 @@ func (user *User) Save() error {
 					Gender: %q,
 					Description: %q
 				},
-				Likes: %q,
-				Meets: %q
+				Likes: %s,
+				Meets: %s
 			} IN users RETURN NEW`,
 			*user.Key,
 			user.Username,
@@ -72,8 +80,8 @@ func (user *User) Save() error {
 			user.Profile.Age,
 			user.Profile.Gender,
 			user.Profile.Description,
-			user.Likes,
-			user.Meets,
+			l,
+			m,
 		).Cache(true).BatchSize(500)
 	}
 	log.Println(q)

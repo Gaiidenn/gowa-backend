@@ -64,18 +64,17 @@ func (cs *ChatRPCService) NewMessage(m *chats.Message, r *bool) error {
 		return err
 	}
 
-	for _, u := range chat.Users {
-		key := u.Token
-		log.Println(u.Username, u.Token)
-		if c, ok := h.connections[key]; ok {
-			log.Println(u.Token, " OK")
-			var rr *bool
-			call := RpcCall{
-				Method: "ChatService.msgReceived",
-				Args: m,
-				Reply: rr,
+	for _, c := range h.connections {
+		for _, u := range chat.Users {
+			if c.user.Username == u.Username {
+				var rr *bool
+				call := RpcCall{
+					Method: "ChatService.msgReceived",
+					Args: m,
+					Reply: rr,
+				}
+				c.call <- &call
 			}
-			c.call <- &call
 		}
 	}
 
