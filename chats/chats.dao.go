@@ -2,16 +2,17 @@ package chats
 
 import (
 	"github.com/Gaiidenn/gowa-backend/users"
-	"github.com/Gaiidenn/gowa-backend/database"
-	"time"
-	"log"
-	ara "github.com/solher/arangolite"
-	"encoding/json"
+	//"github.com/Gaiidenn/gowa-backend/database"
+	//"time"
+	//"log"
+	//ara "github.com/solher/arangolite"
+	//"encoding/json"
 	"errors"
+	//"encoding/json"
 )
 
 func NewChat(users []*users.User) (*Chat, error) {
-	db := database.GetDB()
+	/*db := database.GetDB()
 	var conv []Message
 	ca, err := time.Now().MarshalJSON()
 	u, err := json.Marshal(users)
@@ -41,12 +42,12 @@ func NewChat(users []*users.User) (*Chat, error) {
 	}
 	if (len(tmpChat) > 0) {
 		return &tmpChat[0], nil
-	}
+	}*/
 	return nil, errors.New("NewChat returned empty array")
 }
 
 func (chat *Chat) update() error {
-	users, err := json.Marshal(chat.Users)
+	/*users, err := json.Marshal(chat.Users)
 	if err != nil {
 		return err
 	}
@@ -68,12 +69,12 @@ func (chat *Chat) update() error {
 	_, err = db.Run(q)
 	if err != nil {
 		return err
-	}
+	}*/
 	return nil
 }
 
 func GetByKey(key string) (*Chat, error) {
-	db := database.GetDB()
+	/*db := database.GetDB()
 	log.Println("GetByKey : ", key)
 	var q *ara.Query
 	q = ara.NewQuery(`FOR chat IN chats FILTER chat._key == %q RETURN chat`, key).Cache(true).BatchSize(500)
@@ -90,6 +91,6 @@ func GetByKey(key string) (*Chat, error) {
 	}
 	if (len(tmpChat) > 0) {
 		return &tmpChat[0], nil
-	}
+	}*/
 	return nil, errors.New("Chat.GetByKey: return empty array")
 }

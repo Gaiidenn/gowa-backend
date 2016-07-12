@@ -29,11 +29,14 @@ func (us *UserRPCService) Save(user *users.User, reply *users.User) error {
 	if user.ReadyForSave() {
 		// Saving token
 		key := user.Token
+		log.Println("UserRPC Save()")
 		err := user.Save()
 		if err != nil {
 			return err
 		}
 		user.Token = key
+	} else {
+		log.Println("User not ready for save : ", user)
 	}
 
 	h.registerUser <- user

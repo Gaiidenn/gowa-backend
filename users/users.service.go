@@ -56,13 +56,8 @@ func (user *User) AvailableUsername() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	var key string
-	if user.Document.Key != nil {
-		key = *user.Document.Key
-	} else {
-		key = ""
-	}
-	if u != nil && u.Username == user.Username && *u.Document.Key != key {
+
+	if u != nil && u.Username == user.Username && u.ID != user.ID {
 		return false, nil
 	}
 

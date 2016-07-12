@@ -2,14 +2,15 @@ package database
 
 import (
 	"log"
-	ara "github.com/solher/arangolite"
-	"fmt"
+	"database/sql"
+
+	_ "gopkg.in/cq.v1"
 )
 
-var db *ara.DB
+var db *sql.DB
 
 func InitConnection(dbName string, dbUsername string, dbPassword string) {
-	db = ara.New().
+	/*db = ara.New().
 		LoggerOptions(false, false, false).
 		Connect("http://localhost:8529", "_system", "root", "")
 	fmt.Println(dbUsername)
@@ -25,14 +26,22 @@ func InitConnection(dbName string, dbUsername string, dbPassword string) {
 		log.Println("Database successfully created")
 	}
 
-	db.SwitchDatabase(dbName)
-	initCollections()
+	db.SwitchDatabase(dbName)*/
+	var baseURL string
+	baseURL = "http://" + dbUsername + ":" + dbPassword + "@localhost:7474"
+	dbTmp, err := sql.Open("neo4j-cypher", baseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	db = dbTmp
+	log.Println("Connection to database successfull")
+	//initCollections()
 }
 
-func GetDB() *ara.DB {
+func GetDB() *sql.DB {
 	return db
 }
-
+/*
 func initCollections() {
 	cols := []string{
 		"users",
@@ -52,3 +61,4 @@ func createCollection(colName string) {
 	 }
 	 log.Println("Collection", colName, "successfully created")
 }
+*/

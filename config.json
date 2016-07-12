@@ -1,6 +1,6 @@
 {
     "clientPath": "/home/jerome/node-workspace/gowa-frontend/dist",
     "dbName": "test",
-    "dbUsername": "root",
-    "dbPassword": ""
+    "dbUsername": "neo4j",
+    "dbPassword": "1234"
 }

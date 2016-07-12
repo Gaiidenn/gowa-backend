@@ -129,7 +129,7 @@ func (h *hub) UnregisterUser(user *users.User) {
 	key := user.Token
 	if (len(key) > 0) {
 		if _, ok := h.connections[key]; ok {
-			if h.connections[key].user.Document.ID != nil {
+			if h.connections[key].user.ID != "" {
 				log.Println("offline : ", *h.connections[key].user)
 				h.connections[key].user.Connected = false;
 				var reply *bool
