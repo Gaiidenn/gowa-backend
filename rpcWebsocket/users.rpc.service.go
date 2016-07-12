@@ -20,6 +20,7 @@ func (us *UserRPCService) Save(user *users.User, reply *users.User) error {
 		return errors.New("username already exists")
 	}
 
+	// TODO: Check this logic that seems bad !!
 	for _, c := range h.connections {
 		if c.user != nil && c.user.Username == user.Username && c.user.Token != user.Token {
 			return nil

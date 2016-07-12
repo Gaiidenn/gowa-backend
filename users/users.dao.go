@@ -34,84 +34,6 @@ func (user *User) Save() error {
 	user.Connected = connected
 
 	return nil
-
-	/*
-	l, err := json.Marshal(user.Likes)
-	if err != nil {
-		return err
-	}
-	m, err := json.Marshal(user.Meets)
-	if err != nil {
-		return err
-	}
-	var q *ara.Query
-	if user.Key == nil {
-		rd, _ := user.RegistrationDate.MarshalJSON()
-		q = ara.NewQuery(`FOR i IN 1..1 INSERT {
-				Username: %q,
-				Email: %q,
-				Password: %q,
-				Profile: {
-					Age: %d,
-					Gender: %q,
-					Description: %q
-				},
-				RegistrationDate: %s,
-				Likes: %s,
-				Meets: %s
-			} IN users RETURN NEW`,
-			user.Username,
-			user.Email,
-			user.Password,
-			user.Profile.Age,
-			user.Profile.Gender,
-			user.Profile.Description,
-			rd,
-			l,
-			m,
-		).Cache(true).BatchSize(500)
-
-	} else {
-		q = ara.NewQuery(`UPDATE %q WITH {
-				Username: %q,
-				Email: %q,
-				Password: %q,
-				Profile: {
-					Age: %d,
-					Gender: %q,
-					Description: %q
-				},
-				Likes: %s,
-				Meets: %s
-			} IN users RETURN NEW`,
-			*user.Key,
-			user.Username,
-			user.Email,
-			user.Password,
-			user.Profile.Age,
-			user.Profile.Gender,
-			user.Profile.Description,
-			l,
-			m,
-		).Cache(true).BatchSize(500)
-	}
-	log.Println(q)
-	resp, err := db.Run(q)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	var tmpUser []User
-	err = json.Unmarshal(resp, &tmpUser)
-	if err != nil {
-		return err
-	}
-	if (len(tmpUser) > 0) {
-		tmpUser[0].Connected = connected
-		*user = tmpUser[0]
-		return nil
-	}
-	return errors.New("User.Save: db query returned empty")*/
 }
 
 func (user *User) Create() error {
@@ -129,14 +51,14 @@ func (user *User) Create() error {
 	}
 	stmt, err := db.Prepare(`
 		CREATE (u:User {
-			ID: {0},
-			Username: {1},
-			Email: {2},
-			Password: {3},
-			RegistrationDate: {4},
-			Age: {5},
-			Gender: {6},
-			Description: {7}
+			id: {0},
+			username: {1},
+			email: {2},
+			password: {3},
+			registrationDate: {4},
+			age: {5},
+			gender: {6},
+			description: {7}
 		})
 	`)
 	if err != nil {
@@ -176,13 +98,14 @@ func (user *User) Update() error {
 	db := database.GetDB()
 
 	stmt, err := db.Prepare(`
-		MERGE (u:User {
-			Username: {0},
-			Email: {1},
-			Age: {2},
-			Gender: {3},
-			Description: {4}
-		}) WHERE u.ID = {5}
+		MATCH (u:User {
+			id = {0}
+		}) SET
+			username: {1},
+			email: {2},
+			age: {3},
+			gender: {4},
+			description: {5}
 	`)
 	if err != nil {
 		return err
@@ -190,12 +113,42 @@ func (user *User) Update() error {
 	defer stmt.Close()
 	log.Println("Trying to update user : ", user)
 	rows, err := stmt.Query(
+		user.ID,
 		user.Username,
 		user.Email,
 		user.Age,
 		user.Gender,
 		user.Description,
+	)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	return nil
+}
+
+func (user *User) UpdatePassword() error {
+	if user.ID == "" {
+		return errors.New("No such ID")
+	}
+
+	db := database.GetDB()
+
+	stmt, err := db.Prepare(`
+		MATCH (u:User {
+			id = {0}
+		}) SET
+			password: {1}
+	`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	log.Println("Trying to update user : ", user)
+	rows, err := stmt.Query(
 		user.ID,
+		user.Password,
 	)
 	if err != nil {
 		return err
@@ -211,12 +164,12 @@ func (user *User) GetAll() ([]User, error) {
 	stmt, err := db.Prepare(`
 		MATCH (u:User)
 		RETURN
-			u.Username,
-			u.ID,
-			u.Age,
-			u.Gender,
-			u.Description,
-			u.RegistrationDate
+			u.username,
+			u.id,
+			u.age,
+			u.gender,
+			u.description,
+			u.registrationDate
 	`)
 	if err != nil {
 		return nil, err
@@ -232,7 +185,14 @@ func (user *User) GetAll() ([]User, error) {
 	users := make([]User, 0, 0)
 	for rows.Next() {
 		var u User
-		err := rows.Scan(&u.Username, &u.ID, &u.Age, &u.Gender, &u.Description, &u.RegistrationDate)
+		err := rows.Scan(
+			&u.Username,
+			&u.ID,
+			&u.Age,
+			&u.Gender,
+			&u.Description,
+			&u.RegistrationDate,
+		)
 		if err != nil {
 			log.Println(err, u)
 			return nil, err
@@ -242,40 +202,22 @@ func (user *User) GetAll() ([]User, error) {
 	}
 
 	return users, nil
-	/*
-	q := ara.NewQuery(`FOR user IN users RETURN user`).Cache(true).BatchSize(500)
-	log.Println(q)
-	resp, err := db.Run(q)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	var users []User
-	err = json.Unmarshal(resp, &users)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	log.Println(users)
-
-	return users, nil*/
 }
 
 func (user *User) getByUsername(username string) (*User, error) {
 	db := database.GetDB()
 
 	stmt, err := db.Prepare(`
-		MATCH (u:User)
-		WHERE u.Username = {0}
+		MATCH (u:User {username: {0}})
 		RETURN
-			u.ID,
-			u.Username,
-			u.Password,
-			u.Email,
-			u.Age,
-			u.Gender,
-			u.Description,
-			u.RegistrationDate
+			u.id,
+			u.username,
+			u.password,
+			u.email,
+			u.age,
+			u.gender,
+			u.description,
+			u.registrationDate
 	`)
 	if err != nil {
 		return nil, err
@@ -306,20 +248,4 @@ func (user *User) getByUsername(username string) (*User, error) {
 	}
 	log.Println(u)
 	return &u, nil
-
-	/*
-	q := ara.NewQuery(`FOR user IN users FILTER user.Username == %q RETURN user`, user.Username).Cache(true).BatchSize(500)
-	resp, err := db.Run(q)
-	if err != nil {
-		return nil, err
-	}
-	var users []User
-	err = json.Unmarshal(resp, &users)
-	if err != nil {
-		return nil, err
-	}
-	if len(users) > 0 {
-		return &users[0], nil
-	}
-	return nil, nil*/
 }

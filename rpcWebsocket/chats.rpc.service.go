@@ -3,13 +3,38 @@ package rpcWebsocket
 import (
 	"github.com/Gaiidenn/gowa-backend/chats"
 	"github.com/Gaiidenn/gowa-backend/users"
-	"log"
 )
 
 // UserRPCService for jsonRPC requests
 type ChatRPCService struct {
 }
 
+
+func (cs *ChatRPCService) OpenChat(users []*users.User, reply *chats.Chat) error {
+	chat, err := chats.OpenChat(users)
+	if err != nil {
+		return err
+	}
+	for _, u := range chat.Users {
+		key := u.Token
+		if c, ok := h.connections[key]; ok {
+			var rr *bool
+			call := RpcCall{
+				Method: "ChatService.registerChat",
+				Args: chat,
+				Reply: rr,
+			}
+			c.call <- &call
+		}
+	}
+
+	*reply = *chat
+	return nil
+}
+
+// -------------------- OLD CODE -----------------
+
+/*
 // Save the user in database
 func (cs *ChatRPCService) NewChat(users []*users.User, reply *chats.Chat) error {
 	chat, err := chats.NewChat(users)
@@ -80,4 +105,4 @@ func (cs *ChatRPCService) NewMessage(m *chats.Message, r *bool) error {
 
 	*r = true
 	return nil
-}
+}*/

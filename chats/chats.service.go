@@ -1,5 +1,5 @@
 package chats
-
+/*
 import (
 	"time"
 	"log"
@@ -19,4 +19,4 @@ func NewMessage(msg *Message) (*Chat, error) {
 		return nil, err
 	}
 	return chat, err
-}
+}*/

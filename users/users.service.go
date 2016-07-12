@@ -25,32 +25,7 @@ func (user *User) Login() error {
 	user.Connected = true
 	return nil
 }
-/*
-// Get all Users from collection
-func (user *User) GetAllWithConnected() (*[]User, error) {
-	users, err := user.GetAll()
-	if err != nil {
-		return nil, err
-	}
-	// Adding connected users
-	for _, cUser := range h.connectedUsers {
-		exists := false
-		for i, user := range users {
-			if cUser.Username == user.Username {
-				exists = true
-				users[i].Connected = true
-				users[i].Token = cUser.Token
-				continue
-			}
-		}
-		if !exists {
-			users = append(users, *cUser)
-		}
-	}
 
-	return &users, nil
-}
-*/
 func (user *User) AvailableUsername() (bool, error) {
 	u, err := user.getByUsername(user.Username)
 	if err != nil {
