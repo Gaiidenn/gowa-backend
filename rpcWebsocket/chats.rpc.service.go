@@ -3,6 +3,7 @@ package rpcWebsocket
 import (
 	"github.com/Gaiidenn/gowa-backend/chats"
 	"github.com/Gaiidenn/gowa-backend/users"
+	"errors"
 )
 
 // UserRPCService for jsonRPC requests
@@ -10,8 +11,14 @@ type ChatRPCService struct {
 }
 
 
-func (cs *ChatRPCService) OpenChat(users []*users.User, reply *chats.Chat) error {
-	chat, err := chats.OpenChat(users)
+func (cs *ChatRPCService) OpenPrivateChat(users []*users.User, reply *chats.Chat) error {
+	if len(users) < 2 {
+		return errors.New("Not enough parameters")
+	}
+	if len(users) > 2 {
+		return errors.New("Too many parameters")
+	}
+	chat, err := chats.OpenPrivateChat(users[0], users[1])
 	if err != nil {
 		return err
 	}

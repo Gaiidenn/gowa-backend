@@ -5,16 +5,16 @@ import (
 )
 
 type Chat struct {
-	ID 			 string
-	Users        []*users.User
-	Conversation []Message
-	CreatedAt    string
-	Private 	 bool
+	ID 			 string `json:"id"`
+	Users        []*users.User `json:"users"`
+	Conversation []Message `json:"conversation"`
+	CreatedAt    string `json:"createdAt"`
+	Private 	 bool `json:"private"`
 }
 
 type Message struct {
-	ChatID    string
-	User      *users.User
-	Msg       string
-	CreatedAt string
+	ChatID    string `json:"chatID"`
+	UserID    string `json:"userID"`
+	Msg       string `json:"msg"`
+	CreatedAt string `json:"createdAt"`
 }

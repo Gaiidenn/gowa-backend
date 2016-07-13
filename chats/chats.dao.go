@@ -5,54 +5,45 @@ import (
 	"github.com/Gaiidenn/gowa-backend/database"
 	"time"
 	"github.com/satori/go.uuid"
-	"fmt"
-	"log"
 )
 
 
-func OpenChat(users []*users.User) (*Chat, error) {
+func OpenPrivateChat(user1 *users.User, user2 *users.User) (*Chat, error) {
 
 	var chat Chat;
-	if (len(users) == 2) {
-		chat.Private = true
-	} else {
-		chat.Private = false
-	}
+	chat.Private = true
+	chat.Users = make([]*users.User, 0)
+	chat.Users = append(chat.Users, user1, user2)
+
 	db := database.GetDB()
 
+	// CREATING / GETTING Chat Node
 	u1 := uuid.NewV4()
 	chat.ID = u1.String()
 
 	cd := time.Now().String()
 
-	query := "MERGE "
-	params := make([]interface{}, 0)
-	index := 0
-	for _, user := range users {
-		log.Println(index)
-		query += " (chat:Chat)-[:HAS_CHAT]-(:User {id:"+fmt.Printf("%s", index)+"}),"
-		params = append(params, user.ID)
-		index++
-	}
-	query = query[0:len(query)-1]
-	query += " ON CREATE SET chat.createdAt = {"+fmt.Fprintf("%s", index)+"}"
-	index++
-	params = append(params, cd)
-	query += ", chat.id = {"+string(index)+"}"
-	index++
-	params = append(params, chat.ID)
-	query += ", chat.private = {"+string(index)+"}"
-	index++
-	params = append(params, chat.Private)
-	query += " RETURN chat.id, chat.createdAt, chat.private"
-	log.Println(query)
+	query := `
+		MERGE (u:User {id:{0}, username:{1}})
+		MERGE (v:User {id:{2}, username:{3}})
+		MERGE (u)-[:HAS_CHAT]->(chat:Chat {private:true})<-[:HAS_CHAT]-(v)
+		ON CREATE SET chat.id = {4} SET chat.createdAt = {5}
+		RETURN chat.id, chat.createdAt
+		`
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
 	defer stmt.Close()
 
-	rows, err := stmt.Query(params)
+	rows, err := stmt.Query(
+		user1.ID,
+		user1.Username,
+		user2.ID,
+		user2.Username,
+		chat.ID,
+		cd,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -62,12 +53,44 @@ func OpenChat(users []*users.User) (*Chat, error) {
 		err := rows.Scan(
 			&chat.ID,
 			&chat.CreatedAt,
-			&chat.Private,
 		)
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	// GETTING existing Messages & SETTING conversation
+	chat.Conversation = make([]Message, 0)
+
+	query = `
+		MATCH (m:Message)-[:BELONGS_TO]->(c:Chat {id:{0}})
+		RETURN m.userID, m.msg, m.createdAt
+		`
+	stmt, err = db.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err = stmt.Query(chat.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var msg Message
+		err := rows.Scan(
+			&msg.UserID,
+			&msg.Msg,
+			&msg.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		chat.Conversation = append(chat.Conversation, msg)
+	}
+
 	return &chat, nil
 }
 
