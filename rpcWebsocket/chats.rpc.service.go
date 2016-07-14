@@ -4,6 +4,7 @@ import (
 	"github.com/Gaiidenn/gowa-backend/chats"
 	"github.com/Gaiidenn/gowa-backend/users"
 	"errors"
+	"log"
 )
 
 // UserRPCService for jsonRPC requests
@@ -36,6 +37,37 @@ func (cs *ChatRPCService) OpenPrivateChat(users []*users.User, reply *chats.Chat
 	}
 
 	*reply = *chat
+	return nil
+}
+
+func (cs *ChatRPCService) NewMessage(m *chats.Message, r *bool) error {
+	log.Println("RPC NewMessage : ", m)
+
+	err := m.Save()
+	if err != nil {
+		return err
+	}
+
+	chat, err := chats.GetByID(m.ChatID)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range h.connections {
+		for _, u := range chat.Users {
+			if c.user.Username == u.Username {
+				var rr *bool
+				call := RpcCall{
+					Method: "ChatService.msgReceived",
+					Args: m,
+					Reply: rr,
+				}
+				c.call <- &call
+			}
+		}
+	}
+
+	*r = true
 	return nil
 }
 

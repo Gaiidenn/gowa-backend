@@ -60,11 +60,12 @@ func OpenPrivateChat(user1 *users.User, user2 *users.User) (*Chat, error) {
 	}
 
 	// GETTING existing Messages & SETTING conversation
-	chat.Conversation = make([]Message, 0)
+	chat.Conversation = make([]*Message, 0)
 
 	query = `
-		MATCH (m:Message)-[:BELONGS_TO]->(c:Chat {id:{0}})
-		RETURN m.userID, m.msg, m.createdAt
+		MATCH (m:Message)<-[:CONTAINS]-(c:Chat {id:{0}})
+		MATCH (u:User)-[:SENT]->(m)
+		RETURN m.msg, m.createdAt, u.id, u.username
 		`
 	stmt, err = db.Prepare(query)
 	if err != nil {
@@ -80,18 +81,157 @@ func OpenPrivateChat(user1 *users.User, user2 *users.User) (*Chat, error) {
 
 	for rows.Next() {
 		var msg Message
+		var u users.User
+		msg.User = &u
 		err := rows.Scan(
-			&msg.UserID,
 			&msg.Msg,
 			&msg.CreatedAt,
+			&msg.User.ID,
+			&msg.User.Username,
 		)
 		if err != nil {
 			return nil, err
 		}
-		chat.Conversation = append(chat.Conversation, msg)
+		chat.Conversation = append(chat.Conversation, &msg)
 	}
 
 	return &chat, nil
+}
+
+func GetByID(id string) (*Chat, error) {
+	var chat Chat;
+
+	db := database.GetDB()
+
+	// GETTING chat
+	query := `
+		MATCH (c:Chat {id:{0}})
+		RETURN c.private, c.createdAt
+		`
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(
+		id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(
+			&chat.Private,
+			&chat.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// GETTING chat's users
+	query = `
+		MATCH (u:User)-[:HAS_CHAT]->(:Chat {id:{0}})
+		RETURN u.id, u.username
+		`
+	stmt, err = db.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err = stmt.Query(id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var u users.User
+		err := rows.Scan(
+			&u.ID,
+			&u.Username,
+		)
+		if err != nil {
+			return nil, err
+		}
+		chat.Users = append(chat.Users, &u)
+	}
+
+	// GETTING chat's messages
+	query = `
+		MATCH (m:Message)<-[:CONTAINS]-(:Chat {id: {0}})
+		MATCH (u:User)-[:SENT]->(m)
+		RETURN m.msg, m.createdAt, u.id, u.username
+		`
+	stmt, err = db.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err = stmt.Query(id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var m Message
+		var u users.User
+		m.ChatID = id
+		m.User = &u
+		err := rows.Scan(
+			&m.Msg,
+			&m.CreatedAt,
+			&m.User.ID,
+			&m.User.Username,
+		)
+		if err != nil {
+			return nil, err
+		}
+		chat.Conversation = append(chat.Conversation, &m)
+	}
+
+	return &chat, nil
+}
+
+func (m *Message) Save() error {
+	db := database.GetDB()
+
+	cd := time.Now().String()
+	if len(m.CreatedAt) == 0 {
+		m.CreatedAt = cd
+	}
+
+	query := `
+		MATCH (c:Chat {id:{0}})
+		MERGE (u:User {id:{1}, username:{2}})
+		CREATE (c)-[:CONTAINS]->(m:Message {msg:{3}, createdAt:{4}})
+		CREATE (u)-[:SENT]->(m)
+		`
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(
+		m.ChatID,
+		m.User.ID,
+		m.User.Username,
+		m.Msg,
+		m.CreatedAt,
+	)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	return nil
 }
 
 // ---------------- OLD CODE --------------------
