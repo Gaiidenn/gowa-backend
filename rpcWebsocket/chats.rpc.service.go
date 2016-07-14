@@ -23,17 +23,18 @@ func (cs *ChatRPCService) OpenPrivateChat(users []*users.User, reply *chats.Chat
 	if err != nil {
 		return err
 	}
-	for _, u := range chat.Users {
-		key := u.Token
-		if c, ok := h.connections[key]; ok {
-			var rr *bool
-			call := RpcCall{
-				Method: "ChatService.registerChat",
-				Args: chat,
-				Reply: rr,
-			}
-			c.call <- &call
-		}
+
+	*reply = *chat
+	return nil
+}
+
+func (cs *ChatRPCService) GetChat(chatID string, reply *chats.Chat) error {
+	if len(chatID) == 0 {
+		return errors.New("No such ID")
+	}
+	chat, err := chats.GetByID(chatID)
+	if err != nil {
+		return err
 	}
 
 	*reply = *chat
@@ -47,12 +48,12 @@ func (cs *ChatRPCService) NewMessage(m *chats.Message, r *bool) error {
 	if err != nil {
 		return err
 	}
-
+	log.Println("Message saved")
 	chat, err := chats.GetByID(m.ChatID)
 	if err != nil {
 		return err
 	}
-
+	log.Println("Chat getted")
 	for _, c := range h.connections {
 		for _, u := range chat.Users {
 			if c.user.Username == u.Username {

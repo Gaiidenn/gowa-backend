@@ -21,6 +21,10 @@ func (user *User) Login() error {
 	*user = *userTmp
 	if len(token) > 0 {
 		user.Token = token
+		err = user.UpdateToken()
+		if err != nil {
+			return err
+		}
 	}
 	user.Connected = true
 	return nil

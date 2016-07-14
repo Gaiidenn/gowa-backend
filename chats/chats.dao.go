@@ -66,6 +66,7 @@ func OpenPrivateChat(user1 *users.User, user2 *users.User) (*Chat, error) {
 		MATCH (m:Message)<-[:CONTAINS]-(c:Chat {id:{0}})
 		MATCH (u:User)-[:SENT]->(m)
 		RETURN m.msg, m.createdAt, u.id, u.username
+		ORDER BY m.createdAt ASC
 		`
 	stmt, err = db.Prepare(query)
 	if err != nil {
@@ -100,6 +101,7 @@ func OpenPrivateChat(user1 *users.User, user2 *users.User) (*Chat, error) {
 
 func GetByID(id string) (*Chat, error) {
 	var chat Chat;
+	chat.ID = id
 
 	db := database.GetDB()
 
@@ -135,7 +137,7 @@ func GetByID(id string) (*Chat, error) {
 	// GETTING chat's users
 	query = `
 		MATCH (u:User)-[:HAS_CHAT]->(:Chat {id:{0}})
-		RETURN u.id, u.username
+		RETURN u.id, u.username, u.token
 		`
 	stmt, err = db.Prepare(query)
 	if err != nil {
@@ -154,6 +156,7 @@ func GetByID(id string) (*Chat, error) {
 		err := rows.Scan(
 			&u.ID,
 			&u.Username,
+			&u.Token,
 		)
 		if err != nil {
 			return nil, err
@@ -166,6 +169,7 @@ func GetByID(id string) (*Chat, error) {
 		MATCH (m:Message)<-[:CONTAINS]-(:Chat {id: {0}})
 		MATCH (u:User)-[:SENT]->(m)
 		RETURN m.msg, m.createdAt, u.id, u.username
+		ORDER BY m.createdAt ASC
 		`
 	stmt, err = db.Prepare(query)
 	if err != nil {
@@ -209,8 +213,8 @@ func (m *Message) Save() error {
 
 	query := `
 		MATCH (c:Chat {id:{0}})
-		MERGE (u:User {id:{1}, username:{2}})
-		CREATE (c)-[:CONTAINS]->(m:Message {msg:{3}, createdAt:{4}})
+		MERGE (u:User {id:{1}, username:{2}, token:{3}})
+		CREATE (c)-[:CONTAINS]->(m:Message {msg:{4}, createdAt:{5}})
 		CREATE (u)-[:SENT]->(m)
 		`
 	stmt, err := db.Prepare(query)
@@ -223,6 +227,7 @@ func (m *Message) Save() error {
 		m.ChatID,
 		m.User.ID,
 		m.User.Username,
+		m.User.Token,
 		m.Msg,
 		m.CreatedAt,
 	)

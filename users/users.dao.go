@@ -8,7 +8,6 @@ import (
 	"time"
 	//"encoding/json"
 	"github.com/satori/go.uuid"
-	"fmt"
 )
 
 // Save the user in database
@@ -39,27 +38,28 @@ func (user *User) Save() error {
 func (user *User) Create() error {
 	db := database.GetDB()
 
-	u1 := uuid.NewV4()
-	id, err := fmt.Printf("%s", u1)
-	if err != nil {
-		return err
-	}
-	user.ID = u1.String()
+	user.ID = uuid.NewV4().String()
 
 	if user.RegistrationDate == "" {
 		user.RegistrationDate = time.Now().String()
 	}
 	stmt, err := db.Prepare(`
-		CREATE (u:User {
-			id: {0},
-			username: {1},
-			email: {2},
-			password: {3},
-			registrationDate: {4},
-			age: {5},
-			gender: {6},
-			description: {7}
-		})
+		MERGE (u:User {username:{0}, token:{1}})
+		ON CREATE SET
+			u.id = {2},
+			u.email = {3},
+			u.password = {4},
+			u.registrationDate = {5},
+			u.age = {6},
+			u.gender = {7},
+			u.description = {8}
+		ON MATCH SET
+			u.email = {9},
+			u.password = {10},
+			u.registrationDate = {11},
+			u.age = {12},
+			u.gender = {13},
+			u.description = {14}
 	`)
 	if err != nil {
 		return err
@@ -67,8 +67,15 @@ func (user *User) Create() error {
 	defer stmt.Close()
 	log.Println("Trying to create user : ", user)
 	rows, err := stmt.Query(
-		user.ID,
 		user.Username,
+		user.Token,
+		user.ID,
+		user.Email,
+		user.Password,
+		user.RegistrationDate,
+		user.Age,
+		user.Gender,
+		user.Description,
 		user.Email,
 		user.Password,
 		user.RegistrationDate,
@@ -82,11 +89,37 @@ func (user *User) Create() error {
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.Scan(id)
+		var tmp interface{}
+		err := rows.Scan(&tmp)
 		if err != nil {
 			return err
 		}
+		log.Println(tmp)
 	}
+	return nil
+}
+
+func (user *User) UpdateToken() error {
+	db := database.GetDB()
+
+	stmt, err := db.Prepare(`
+		MATCH (u:User {id: {0}})
+		SET u.token = {1}
+	`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	log.Println(user.Token)
+	rows, err := stmt.Query(
+		user.ID,
+		user.Token,
+	)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
 	return nil
 }
 
@@ -98,14 +131,13 @@ func (user *User) Update() error {
 	db := database.GetDB()
 
 	stmt, err := db.Prepare(`
-		MATCH (u:User {
-			id = {0}
-		}) SET
-			username: {1},
-			email: {2},
-			age: {3},
-			gender: {4},
-			description: {5}
+		MATCH (u:User {id: {0}})
+		SET u.username = {1}
+		SET u.email = {2}
+		SET u.age = {3}
+		SET u.gender = {4}
+		SET u.description = {5}
+		SET u.token = {6}
 	`)
 	if err != nil {
 		return err
@@ -119,6 +151,7 @@ func (user *User) Update() error {
 		user.Age,
 		user.Gender,
 		user.Description,
+		user.Token,
 	)
 	if err != nil {
 		return err
@@ -136,10 +169,8 @@ func (user *User) UpdatePassword() error {
 	db := database.GetDB()
 
 	stmt, err := db.Prepare(`
-		MATCH (u:User {
-			id = {0}
-		}) SET
-			password: {1}
+		MATCH (u:User {id: {0}})
+		SET u.password: {1}
 	`)
 	if err != nil {
 		return err
@@ -163,6 +194,7 @@ func (user *User) GetAll() ([]User, error) {
 
 	stmt, err := db.Prepare(`
 		MATCH (u:User)
+		WHERE exists(u.registrationDate)
 		RETURN
 			u.username,
 			u.id,
@@ -209,8 +241,10 @@ func (user *User) getByUsername(username string) (*User, error) {
 
 	stmt, err := db.Prepare(`
 		MATCH (u:User {username: {0}})
+		WHERE exists(u.registrationDate)
 		RETURN
 			u.id,
+			u.token,
 			u.username,
 			u.password,
 			u.email,
@@ -234,6 +268,7 @@ func (user *User) getByUsername(username string) (*User, error) {
 	for rows.Next() {
 		err := rows.Scan(
 			&u.ID,
+			&u.Token,
 			&u.Username,
 			&u.Password,
 			&u.Email,
