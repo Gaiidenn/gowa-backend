@@ -24,10 +24,10 @@ func OpenPrivateChat(user1 *users.User, user2 *users.User) (*Chat, error) {
 	cd := time.Now().String()
 
 	query := `
-		MERGE (u:User {id:{0}, username:{1}})
-		MERGE (v:User {id:{2}, username:{3}})
+		MERGE (u:User {id:{0}, username:{1}, token: {2}})
+		MERGE (v:User {id:{3}, username:{4}, token: {5}})
 		MERGE (u)-[:HAS_CHAT]->(chat:Chat {private:true})<-[:HAS_CHAT]-(v)
-		ON CREATE SET chat.id = {4} SET chat.createdAt = {5}
+		ON CREATE SET chat.id = {6} SET chat.createdAt = {7}
 		RETURN chat.id, chat.createdAt
 		`
 	stmt, err := db.Prepare(query)
@@ -39,8 +39,10 @@ func OpenPrivateChat(user1 *users.User, user2 *users.User) (*Chat, error) {
 	rows, err := stmt.Query(
 		user1.ID,
 		user1.Username,
+		user1.Token,
 		user2.ID,
 		user2.Username,
+		user2.Token,
 		chat.ID,
 		cd,
 	)

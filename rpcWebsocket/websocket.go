@@ -84,8 +84,9 @@ func readKey(ws *websocket.Conn) string {
 
 // callPump pumps calls from the hub to the rpc connection.
 func (c *connection) callPump() {
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer func() {
+		ticker.Stop()
 		c.rc.Close()
 		h.unregister <- c
 	}()
@@ -104,8 +105,10 @@ func (c *connection) callPump() {
 				return
 			}
 			log.Println("call ok -> reply : ", call.Reply)
+			ticker = time.NewTicker(5 * time.Second)
 		case <- ticker.C :
 			if _, err := c.ws.Write([]byte{}); err != nil {
+				h.unregister <- c
 				return
 			}
 		}

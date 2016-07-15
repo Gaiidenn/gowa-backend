@@ -107,3 +107,9 @@ func (us *UserRPCService) GetAll(_ *string, reply *[]users.User) error {
 	*reply = users
 	return nil
 }
+
+func (us *UserRPCService) GetConnectedCount(_ *string, reply *ConnectedUsersCount) error {
+	count := h.connectedUsersCount()
+	*reply = *count
+	return nil
+}

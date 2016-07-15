@@ -74,6 +74,8 @@ func (h *hub) Register(c *connection) {
 		Reply: reply,
 	}
 	c.call <- &call
+
+	h.broadcastConnectedCount()
 }
 
 func (h *hub) Unregister(c *connection) {
@@ -123,6 +125,8 @@ func (h *hub) RegisterUser(user *users.User) {
 		Reply: reply,
 	}
 	h.Broadcast(&call)
+
+	h.broadcastConnectedCount()
 }
 
 func (h *hub) UnregisterUser(user *users.User) {
@@ -152,6 +156,50 @@ func (h *hub) UnregisterUser(user *users.User) {
 			*h.connections[key].user = users.User{}
 		}
 	}
+	h.broadcastConnectedCount()
+}
+
+type ConnectedUsersCount struct {
+	anonymous     int `json:"anonymous"`
+	notRegistered int `json:"notRegistered"`
+	registered    int `json:"registered"`
+}
+
+func (h *hub) broadcastConnectedCount() {
+	count := h.connectedUsersCount()
+	var reply *bool
+	call := RpcCall{
+		Method: "UsersService.setConnectedCount",
+		Args: count,
+		Reply: reply,
+	}
+	h.Broadcast(&call)
+}
+
+func (h *hub) connectedUsersCount() *ConnectedUsersCount {
+	var count ConnectedUsersCount
+	count.anonymous = 0;
+	count.notRegistered = 0;
+	count.registered = 0;
+
+	for _, c := range h.connections {
+		u := c.user
+		if u == nil {
+			count.anonymous++
+			continue
+		}
+		if len(u.Username) == 0 {
+			count.anonymous++
+			continue
+		}
+		if len(u.ID) == 0 {
+			count.notRegistered++
+			continue
+		}
+		count.registered++
+	}
+
+	return &count
 }
 
 const lettersBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
