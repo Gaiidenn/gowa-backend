@@ -4,7 +4,7 @@ import (
 	"github.com/Gaiidenn/gowa-backend/chats"
 	"github.com/Gaiidenn/gowa-backend/users"
 	"errors"
-	"log"
+
 )
 
 // UserRPCService for jsonRPC requests
@@ -42,18 +42,18 @@ func (cs *ChatRPCService) GetChat(chatID string, reply *chats.Chat) error {
 }
 
 func (cs *ChatRPCService) NewMessage(m *chats.Message, r *bool) error {
-	log.Println("RPC NewMessage : ", m)
+	//log.Println("RPC NewMessage : ", m)
 
 	err := m.Save()
 	if err != nil {
 		return err
 	}
-	log.Println("Message saved")
+	//log.Println("Message saved")
 	chat, err := chats.GetByID(m.ChatID)
 	if err != nil {
 		return err
 	}
-	log.Println("Chat getted")
+	//log.Println("Chat getted")
 	for _, c := range h.connections {
 		for _, u := range chat.Users {
 			if c.user.Username == u.Username {
@@ -123,7 +123,7 @@ func (cs *ChatRPCService) OpenChat(key *string, reply *chats.Chat) error {
 }
 
 func (cs *ChatRPCService) NewMessage(m *chats.Message, r *bool) error {
-	log.Println("RPC NewMessage : ", m)
+	//log.Println("RPC NewMessage : ", m)
 	chat, err := chats.NewMessage(m)
 	if err != nil {
 		return err

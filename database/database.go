@@ -1,10 +1,11 @@
 package database
 
 import (
-	"log"
+
 	"database/sql"
 
 	_ "gopkg.in/cq.v1"
+	"log"
 )
 
 var db *sql.DB
@@ -21,9 +22,9 @@ func InitConnection(dbName string, dbUsername string, dbPassword string) {
 		},
 	})
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 	} else {
-		log.Println("Database successfully created")
+		//log.Println("Database successfully created")
 	}
 
 	db.SwitchDatabase(dbName)*/
@@ -34,7 +35,7 @@ func InitConnection(dbName string, dbUsername string, dbPassword string) {
 		log.Fatal(err)
 	}
 	db = dbTmp
-	log.Println("Connection to database successfull")
+	//log.Println("Connection to database successfull")
 	//initCollections()
 }
 
@@ -56,9 +57,9 @@ func initCollections() {
 func createCollection(colName string) {
 	 _, err := db.Run(&ara.CreateCollection{Name: colName})
 	 if err != nil {
-		 log.Println(err)
+		 //log.Println(err)
 		 return
 	 }
-	 log.Println("Collection", colName, "successfully created")
+	 //log.Println("Collection", colName, "successfully created")
 }
 */

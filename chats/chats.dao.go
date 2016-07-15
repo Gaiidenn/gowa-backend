@@ -262,7 +262,7 @@ func NewChat(users []*users.User) (*Chat, error) {
 		ca,
 	).Cache(true).BatchSize(500)
 
-	log.Println(q)
+	//log.Println(q)
 	resp, err := db.Run(q)
 	if err != nil {
 		return nil, err
@@ -297,7 +297,7 @@ func (chat *Chat) update() error {
 		users,
 		conv,
 	).Cache(true).BatchSize(500)
-	log.Println(q)
+	//log.Println(q)
 	_, err = db.Run(q)
 	if err != nil {
 		return err
@@ -307,10 +307,10 @@ func (chat *Chat) update() error {
 
 func GetByKey(key string) (*Chat, error) {
 	db := database.GetDB()
-	log.Println("GetByKey : ", key)
+	//log.Println("GetByKey : ", key)
 	var q *ara.Query
 	q = ara.NewQuery(`FOR chat IN chats FILTER chat._key == %q RETURN chat`, key).Cache(true).BatchSize(500)
-	log.Println(q)
+	//log.Println(q)
 	resp, err := db.Run(q)
 	if err != nil {
 		return nil, err

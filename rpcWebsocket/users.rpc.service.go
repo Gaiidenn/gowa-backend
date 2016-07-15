@@ -3,7 +3,7 @@ package rpcWebsocket
 import (
 	"errors"
 	"github.com/Gaiidenn/gowa-backend/users"
-	"log"
+
 )
 
 // UserRPCService for jsonRPC requests
@@ -20,24 +20,24 @@ func (us *UserRPCService) Save(user *users.User, reply *users.User) error {
 		return errors.New("username already exists")
 	}
 
-	// TODO: Check this logic that seems bad !!
+	// Check if username is free in non registered but connected users
 	for _, c := range h.connections {
 		if c.user != nil && c.user.Username == user.Username && c.user.Token != user.Token {
-			return nil
+			return errors.New("username already exists")
 		}
 	}
 
 	if user.ReadyForSave() {
 		// Saving token
 		key := user.Token
-		log.Println("UserRPC Save()")
+		//log.Println("UserRPC Save()")
 		err := user.Save()
 		if err != nil {
 			return err
 		}
 		user.Token = key
 	} else {
-		log.Println("User not ready for save : ", user)
+		//log.Println("User not ready for save : ", user)
 	}
 
 	h.registerUser <- user
@@ -48,7 +48,7 @@ func (us *UserRPCService) Save(user *users.User, reply *users.User) error {
 
 // Log the user in app
 func (us *UserRPCService) Login(userLogin *users.User, user *users.User) error {
-	log.Println("Login : ", userLogin)
+	//log.Println("Login : ", userLogin)
 	key := userLogin.Token
 
 	err := userLogin.Login()

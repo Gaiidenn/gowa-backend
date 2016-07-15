@@ -1,7 +1,7 @@
 package users
 
 import (
-	//"log"
+	//
 	//valid "github.com/asaskevich/govalidator"
 )
 

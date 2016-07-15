@@ -1,9 +1,10 @@
 package rpcWebsocket
 
 import (
-	"log"
+
 	"math/rand"
 	"github.com/Gaiidenn/gowa-backend/users"
+	"log"
 )
 
 // hub maintains the set of active connections and broadcasts messages to the
@@ -81,7 +82,11 @@ func (h *hub) Register(c *connection) {
 func (h *hub) Unregister(c *connection) {
 	for key, cTmp := range h.connections {
 		if cTmp == c {
-			h.UnregisterUser(c.user)
+			if c.user != nil {
+				var u users.User
+				u = *c.user
+				defer h.UnregisterUser(&u)
+			}
 			log.Println("Unregistring connection : ", key)
 			delete(h.connections, key)
 			close(c.call)
@@ -92,12 +97,13 @@ func (h *hub) Unregister(c *connection) {
 func (h *hub) Broadcast(m *RpcCall) {
 	log.Println("trying to broadcast")
 	log.Println(m)
-	for key, c := range h.connections {
+	for _, c := range h.connections {
+		c.call <- m
 		select {
 		case c.call <- m:
 		default:
-			log.Println("Broadcast failed => deleting connection : ", key)
-			h.Unregister(c)
+			log.Println("Broadcast failed => deleting connection : ", c.user.Token)
+			h.unregister <- c
 		}
 	}
 }
@@ -113,7 +119,7 @@ func (h *hub) RegisterUser(user *users.User) {
 		log.Println("unknown connection (key : \"", key, "\")")
 		return
 	}
-	if h.connections[key].user != nil && h.connections[key].user.Token == user.Token && h.connections[key].user.Username != user.Username {
+	if h.connections[key].user != nil && h.connections[key].user.Username == user.Username {
 		 h.UnregisterUser(h.connections[key].user)
 	}
 	h.connections[key].user = user
@@ -133,36 +139,36 @@ func (h *hub) UnregisterUser(user *users.User) {
 	key := user.Token
 	if (len(key) > 0) {
 		if _, ok := h.connections[key]; ok {
-			if h.connections[key].user.ID != "" {
-				log.Println("offline : ", *h.connections[key].user)
-				h.connections[key].user.Connected = false;
-				var reply *bool
-				call := RpcCall{
-					Method: "UsersService.updateList",
-					Args: user,
-					Reply: reply,
-				}
-				h.Broadcast(&call)
-			} else {
-				log.Println("User unregistered! key: ", key)
-				var reply *bool
-				call := RpcCall{
-					Method: "UsersService.removeFromList",
-					Args: user.Username,
-					Reply: reply,
-				}
-				h.Broadcast(&call)
-			}
 			*h.connections[key].user = users.User{}
+		}
+		if user.ID != "" {
+			log.Println("offline : ", user)
+			user.Connected = false;
+			var reply *bool
+			call := RpcCall{
+				Method: "UsersService.updateList",
+				Args: user,
+				Reply: reply,
+			}
+			h.Broadcast(&call)
+		} else {
+			log.Println("User unregistered! key: ", key)
+			var reply *bool
+			call := RpcCall{
+				Method: "UsersService.removeFromList",
+				Args: user.Username,
+				Reply: reply,
+			}
+			h.Broadcast(&call)
 		}
 	}
 	h.broadcastConnectedCount()
 }
 
 type ConnectedUsersCount struct {
-	anonymous     int `json:"anonymous"`
-	notRegistered int `json:"notRegistered"`
-	registered    int `json:"registered"`
+	Anonymous     int `json:"anonymous"`
+	NotRegistered int `json:"notRegistered"`
+	Registered    int `json:"registered"`
 }
 
 func (h *hub) broadcastConnectedCount() {
@@ -178,25 +184,25 @@ func (h *hub) broadcastConnectedCount() {
 
 func (h *hub) connectedUsersCount() *ConnectedUsersCount {
 	var count ConnectedUsersCount
-	count.anonymous = 0;
-	count.notRegistered = 0;
-	count.registered = 0;
+	count.Anonymous = 0;
+	count.NotRegistered = 0;
+	count.Registered = 0;
 
 	for _, c := range h.connections {
 		u := c.user
 		if u == nil {
-			count.anonymous++
+			count.Anonymous++
 			continue
 		}
 		if len(u.Username) == 0 {
-			count.anonymous++
+			count.Anonymous++
 			continue
 		}
 		if len(u.ID) == 0 {
-			count.notRegistered++
+			count.NotRegistered++
 			continue
 		}
-		count.registered++
+		count.Registered++
 	}
 
 	return &count
@@ -206,12 +212,12 @@ const lettersBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345
 
 func (h *hub) generateKey() string {
 	key := randStringBytes(KEY_LENGTH)
-	log.Println("First key : ", key)
+	//log.Println("First key : ", key)
 	_, ok := h.connections[key]
 	for ok == true {
 		key = randStringBytes(KEY_LENGTH)
 		_, ok = h.connections[key];
-		log.Println("Other key : ", key)
+		//log.Println("Other key : ", key)
 	}
 	return key
 }

@@ -1,7 +1,6 @@
 package users
 
 import (
-	"log"
 	"errors"
 )
 
@@ -44,7 +43,7 @@ func (user *User) AvailableUsername() (bool, error) {
 }
 
 func (user *User) ReadyForSave() bool {
-	log.Println(len(user.Username), len(user.Password), len(user.Email))
+	//log.Println(len(user.Username), len(user.Password), len(user.Email))
 	if len(user.Username) < 4 {
 		return false
 	}

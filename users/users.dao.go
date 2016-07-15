@@ -1,7 +1,6 @@
 package users
 
 import (
-	"log"
 	"errors"
 	"github.com/Gaiidenn/gowa-backend/database"
 	//ara "github.com/solher/arangolite"
@@ -15,7 +14,7 @@ func (user *User) Save() error {
 	connected := user.Connected
 	ok, err := user.AvailableUsername();
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 		return err
 	}
 	if !ok {
@@ -23,7 +22,7 @@ func (user *User) Save() error {
 	}
 
 
-	log.Println("User Save() : ", user)
+	//log.Println("User Save() : ", user)
 	if user.ID == "" {
 		user.Create()
 	} else {
@@ -65,7 +64,7 @@ func (user *User) Create() error {
 		return err
 	}
 	defer stmt.Close()
-	log.Println("Trying to create user : ", user)
+	//log.Println("Trying to create user : ", user)
 	rows, err := stmt.Query(
 		user.Username,
 		user.Token,
@@ -94,7 +93,7 @@ func (user *User) Create() error {
 		if err != nil {
 			return err
 		}
-		log.Println(tmp)
+		//log.Println(tmp)
 	}
 	return nil
 }
@@ -110,7 +109,7 @@ func (user *User) UpdateToken() error {
 		return err
 	}
 	defer stmt.Close()
-	log.Println(user.Token)
+	//log.Println(user.Token)
 	rows, err := stmt.Query(
 		user.ID,
 		user.Token,
@@ -143,7 +142,7 @@ func (user *User) Update() error {
 		return err
 	}
 	defer stmt.Close()
-	log.Println("Trying to update user : ", user)
+	//log.Println("Trying to update user : ", user)
 	rows, err := stmt.Query(
 		user.ID,
 		user.Username,
@@ -176,7 +175,7 @@ func (user *User) UpdatePassword() error {
 		return err
 	}
 	defer stmt.Close()
-	log.Println("Trying to update user : ", user)
+	//log.Println("Trying to update user : ", user)
 	rows, err := stmt.Query(
 		user.ID,
 		user.Password,
@@ -226,10 +225,10 @@ func (user *User) GetAll() ([]User, error) {
 			&u.RegistrationDate,
 		)
 		if err != nil {
-			log.Println(err, u)
+			//log.Println(err, u)
 			return nil, err
 		}
-		log.Println(u)
+		//log.Println(u)
 		users = append(users, u)
 	}
 
@@ -281,6 +280,6 @@ func (user *User) getByUsername(username string) (*User, error) {
 			return nil, err
 		}
 	}
-	log.Println(u)
+	//log.Println(u)
 	return &u, nil
 }

@@ -2,11 +2,11 @@ package chats
 /*
 import (
 	"time"
-	"log"
+
 )
 
 func NewMessage(msg *Message) (*Chat, error) {
-	log.Println("NewMessage : ", msg)
+	//log.Println("NewMessage : ", msg)
 	chat, err := GetByKey(msg.ChatKey)
 	if err != nil {
 		return nil, err

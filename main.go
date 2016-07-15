@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"log"
+
 	"net/http"
 	"net/rpc"
 	"io/ioutil"
@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/websocket"
 	"github.com/Gaiidenn/gowa-backend/database"
 	"github.com/Gaiidenn/gowa-backend/rpcWebsocket"
+	"log"
 )
 
 type Configuration struct {
