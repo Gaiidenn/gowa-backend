@@ -3,7 +3,7 @@ package rpcWebsocket
 import (
 	"errors"
 	"github.com/Gaiidenn/gowa-backend/users"
-
+	"github.com/satori/go.uuid"
 )
 
 // UserRPCService for jsonRPC requests
@@ -22,9 +22,13 @@ func (us *UserRPCService) Save(user *users.User, reply *users.User) error {
 
 	// Check if username is free in non registered but connected users
 	for _, c := range h.connections {
-		if c.user != nil && c.user.Username == user.Username && c.user.Token != user.Token {
+		if c.user != nil && c.user.Username == user.Username && c.user.ID != user.ID {
 			return errors.New("username already exists")
 		}
+	}
+
+	if len(user.ID) == 0 {
+		user.ID = uuid.NewV4().String()
 	}
 
 	if user.ReadyForSave() {
@@ -36,8 +40,6 @@ func (us *UserRPCService) Save(user *users.User, reply *users.User) error {
 			return err
 		}
 		user.Token = key
-	} else {
-		//log.Println("User not ready for save : ", user)
 	}
 
 	h.registerUser <- user
@@ -111,5 +113,14 @@ func (us *UserRPCService) GetAll(_ *string, reply *[]users.User) error {
 func (us *UserRPCService) GetConnectedCount(_ *string, reply *ConnectedUsersCount) error {
 	count := h.connectedUsersCount()
 	*reply = *count
+	return nil
+}
+
+func (us *UserRPCService) GetPeopleMet(user *users.User, reply *[]users.User) error {
+	users, err := user.GetPeopleMet()
+	if err != nil {
+		return err
+	}
+	*reply = users
 	return nil
 }

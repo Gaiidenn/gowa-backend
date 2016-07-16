@@ -4,7 +4,6 @@ import (
 	"github.com/Gaiidenn/gowa-backend/chats"
 	"github.com/Gaiidenn/gowa-backend/users"
 	"errors"
-
 )
 
 // UserRPCService for jsonRPC requests
@@ -22,6 +21,20 @@ func (cs *ChatRPCService) OpenPrivateChat(users []*users.User, reply *chats.Chat
 	chat, err := chats.OpenPrivateChat(users[0], users[1])
 	if err != nil {
 		return err
+	}
+
+	for _, user := range users {
+		pm, err := user.GetPeopleMet()
+		if err != nil {
+			return err
+		}
+		var r *bool
+		call := RpcCall{
+			Method: "UsersService.updatePeopleMet",
+			Args: []interface{}{user.ID,pm},
+			Reply: r,
+		}
+		h.broadcast <- &call
 	}
 
 	*reply = *chat

@@ -119,7 +119,7 @@ func (h *hub) RegisterUser(user *users.User) {
 		log.Println("unknown connection (key : \"", key, "\")")
 		return
 	}
-	if h.connections[key].user != nil && h.connections[key].user.Username == user.Username {
+	if h.connections[key].user != nil && h.connections[key].user.ID == user.ID {
 		 h.UnregisterUser(h.connections[key].user)
 	}
 	h.connections[key].user = user
@@ -141,7 +141,7 @@ func (h *hub) UnregisterUser(user *users.User) {
 		if _, ok := h.connections[key]; ok {
 			*h.connections[key].user = users.User{}
 		}
-		if user.ID != "" {
+		if user.RegistrationDate != "" {
 			log.Println("offline : ", user)
 			user.Connected = false;
 			var reply *bool
@@ -156,7 +156,7 @@ func (h *hub) UnregisterUser(user *users.User) {
 			var reply *bool
 			call := RpcCall{
 				Method: "UsersService.removeFromList",
-				Args: user.Username,
+				Args: user.ID,
 				Reply: reply,
 			}
 			h.Broadcast(&call)
@@ -198,7 +198,7 @@ func (h *hub) connectedUsersCount() *ConnectedUsersCount {
 			count.Anonymous++
 			continue
 		}
-		if len(u.ID) == 0 {
+		if len(u.RegistrationDate) == 0 {
 			count.NotRegistered++
 			continue
 		}

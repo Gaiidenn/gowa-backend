@@ -11,7 +11,7 @@ func (user *User) Login() error {
 	if err != nil {
 		return err
 	}
-	if userTmp == nil {
+	if len(userTmp.ID) == 0 {
 		return errors.New("unknown username")
 	}
 	if (userTmp.Password != user.Password) {
