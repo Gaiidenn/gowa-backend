@@ -217,64 +217,34 @@ func (user *User) getByUsername(username string) (*User, error) {
 
 func (user *User) GetPeopleMet() ([]User, error) {
 	db := database.GetDB()
-	users := make([]User, 0, 0)
-	//if len(user.ID) > 0 {
-		stmt, err := db.Prepare(`
-			MATCH (:User {id:{0}})-[:HAS_CHAT]->(c:Chat {private:true})<-[:HAS_CHAT]-(u:User)
-			RETURN
-				u.id,
-				u.username
-		`)
+	users := make([]User, 0)
+	stmt, err := db.Prepare(`
+		MATCH (:User {id:{0}})-[:HAS_CHAT]->(c:Chat {private:true})<-[:HAS_CHAT]-(u:User)
+		RETURN
+			u.id,
+			u.username
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(user.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var u User
+		err := rows.Scan(&u.ID, &u.Username)
 		if err != nil {
+			//log.Println(err, u)
 			return nil, err
 		}
-		defer stmt.Close()
-
-		rows, err := stmt.Query(user.ID)
-		if err != nil {
-			return nil, err
-		}
-		defer rows.Close()
-
-		for rows.Next() {
-			var u User
-			err := rows.Scan(&u.ID, &u.Username)
-			if err != nil {
-				//log.Println(err, u)
-				return nil, err
-			}
-			//log.Println(u)
-			users = append(users, u)
-		}
-	//} else {
-	//	stmt, err := db.Prepare(`
-	//		MATCH (:User {token:{0}, username:{1})-[:HAS_CHAT]->(c:Chat {private:true})<-[:HAS_CHAT]-(u:User)
-	//		RETURN
-	//			u.id,
-	//			u.username
-	//	`)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	defer stmt.Close()
-//
-	//	rows, err := stmt.Query(user.Token, user.Username)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	defer rows.Close()
-//
-	//	for rows.Next() {
-	//		var u User
-	//		err := rows.Scan(&u.ID, &u.Username)
-	//		if err != nil {
-	//			//log.Println(err, u)
-	//			return nil, err
-	//		}
-	//		//log.Println(u)
-	//		users = append(users, u)
-	//	}
-	//}
+		//log.Println(u)
+		users = append(users, u)
+	}
 
 	return users, nil
 }
