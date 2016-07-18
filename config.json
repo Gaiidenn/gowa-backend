@@ -1,5 +1,5 @@
 {
-    "clientPath": "/home/gaiidenn/node-workspace/gowa-frontend/dist",
+    "clientPath": "/home/jerome/node-workspace/gowa-frontend/dist",
     "dbName": "test",
     "dbUsername": "neo4j",
     "dbPassword": "1234"

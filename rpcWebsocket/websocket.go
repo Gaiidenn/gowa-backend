@@ -65,6 +65,7 @@ func PushHandler(ws *websocket.Conn) {
 			call: call,
 		}
 	}
+	c.ws = ws
 
 	// Registering the connection
 	h.register <- c

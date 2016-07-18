@@ -215,6 +215,35 @@ func (user *User) getByUsername(username string) (*User, error) {
 	return &u, nil
 }
 
+func CountRegistered() (int, error) {
+	db := database.GetDB()
+	stmt, err := db.Prepare(`
+		MATCH (:User)
+		WHERE exists(u.registrationDate) AND u.registrationDate <> ""
+		RETURN count(*) AS total
+	`)
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query()
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	var total int
+	for rows.Next() {
+		err := rows.Scan(&total)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return total, nil
+}
+
 func (user *User) GetPeopleMet() ([]User, error) {
 	db := database.GetDB()
 	users := make([]User, 0)
