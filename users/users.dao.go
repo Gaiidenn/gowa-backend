@@ -3,9 +3,6 @@ package users
 import (
 	"errors"
 	"github.com/Gaiidenn/gowa-backend/database"
-	//ara "github.com/solher/arangolite"
-	"time"
-	//"encoding/json"
 )
 
 // Save the user in database
@@ -24,10 +21,6 @@ func (user *User) Save() error {
 		return errors.New("No such ID")
 	}
 
-	if user.RegistrationDate == "" {
-		user.RegistrationDate = time.Now().String()
-	}
-
 	db := database.GetDB()
 
 	stmt, err := db.Prepare(`
@@ -39,7 +32,7 @@ func (user *User) Save() error {
 		SET u.gender = {5}
 		SET u.description = {6}
 		SET u.token = {7}
-		SET u.registrationDate = {8}
+		ON CREATE SET u.registrationDate = timestamp()
 	`)
 	if err != nil {
 		return err
@@ -55,7 +48,6 @@ func (user *User) Save() error {
 		user.Gender,
 		user.Description,
 		user.Token,
-		user.RegistrationDate,
 	)
 	if err != nil {
 		return err

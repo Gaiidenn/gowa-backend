@@ -3,7 +3,6 @@ package chats
 import (
 	"github.com/Gaiidenn/gowa-backend/users"
 	"github.com/Gaiidenn/gowa-backend/database"
-	"time"
 	"github.com/satori/go.uuid"
 )
 
@@ -21,13 +20,16 @@ func OpenPrivateChat(user1 *users.User, user2 *users.User) (*Chat, error) {
 	u1 := uuid.NewV4()
 	chat.ID = u1.String()
 
-	cd := time.Now().String()
-
 	query := `
-		MERGE (u:User {id:{0}, username:{1}, token: {2}})
-		MERGE (v:User {id:{3}, username:{4}, token: {5}})
+		MERGE (u:User {id:{0}})
+		SET u.username = {1}
+		SET u.token = {2}
+		MERGE (v:User {id:{3}})
+		SET v.username = {4}
+		SET v.token = {5}
 		MERGE (u)-[:HAS_CHAT]->(chat:Chat {private:true})<-[:HAS_CHAT]-(v)
-		ON CREATE SET chat.id = {6} SET chat.createdAt = {7}
+		ON CREATE SET chat.id = {6}
+		ON CREATE SET chat.createdAt = timestamp()
 		RETURN chat.id, chat.createdAt
 		`
 	stmt, err := db.Prepare(query)
@@ -44,7 +46,6 @@ func OpenPrivateChat(user1 *users.User, user2 *users.User) (*Chat, error) {
 		user2.Username,
 		user2.Token,
 		chat.ID,
-		cd,
 	)
 	if err != nil {
 		return nil, err
@@ -208,15 +209,12 @@ func GetByID(id string) (*Chat, error) {
 func (m *Message) Save() error {
 	db := database.GetDB()
 
-	cd := time.Now().String()
-	if len(m.CreatedAt) == 0 {
-		m.CreatedAt = cd
-	}
-
 	query := `
 		MATCH (c:Chat {id:{0}})
-		MERGE (u:User {id:{1}, username:{2}, token:{3}})
-		CREATE (c)-[:CONTAINS]->(m:Message {msg:{4}, createdAt:{5}})
+		MERGE (u:User {id:{1}})
+		SET u.username = {2}
+		SET u.token = {3}
+		CREATE (c)-[:CONTAINS]->(m:Message {msg:{4}, createdAt:timestamp()})
 		CREATE (u)-[:SENT]->(m)
 		`
 	stmt, err := db.Prepare(query)
@@ -231,7 +229,6 @@ func (m *Message) Save() error {
 		m.User.Username,
 		m.User.Token,
 		m.Msg,
-		m.CreatedAt,
 	)
 	if err != nil {
 		return err
